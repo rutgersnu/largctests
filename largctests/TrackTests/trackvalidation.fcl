@@ -1,0 +1,35 @@
+#include "services_microboone.fcl"
+#include "time_memory_tracker_microboone.fcl"
+#include "reco_uboone_mcc8.fcl"
+#include "kalmanfilterfinaltrackfitter.fcl"
+
+process_name: Dummy
+
+services: {
+  TFileService:           { fileName: "trackValidation.root" }
+  @table::microboone_reco_mcc8_services
+  TimeTracker: { }
+} # services
+services.MemoryPeakReporter: @erase
+
+source: {
+  module_type: RootInput
+  maxEvents:  -1            # number of events to read
+} # source
+
+physics: {
+  producers: {}
+  filters:  {}
+  analyzers: {
+    trackvalidation: {
+      module_label: TrackValidation
+      module_type:  TrackValidation
+      inputTracksLabel: pandoraCosmic
+      minHits: 50
+    } # trackvalidation
+  } # analyzers
+  ana:  [ trackvalidation ]
+} # physics
+
+#physics.analyzers.trackvalidation.inputTracksLabel: pandoraCosmic
+physics.analyzers.trackvalidation.inputTracksLabel: trackfitkalmanPandoraCosmic
