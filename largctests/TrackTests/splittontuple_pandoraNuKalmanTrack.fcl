@@ -1,0 +1,213 @@
+#include "services_microboone.fcl"
+#include "time_memory_tracker_microboone.fcl"
+
+#include "tpcneutrinoidfilter_microboone.fcl"
+#include "filters.fcl"
+
+#include "reco_uboone_mcc8_driver_common.fcl"
+
+process_name: SplitToNtuple
+
+services: {
+  TFileService:           { fileName: "splitTrackNtuple_pandoraNuKalmanTrack.root" }
+  @table::microboone_reco_mcc8_services
+  TimeTracker: { }
+} # services
+services.MemoryPeakReporter: @erase
+
+source: {
+  module_type: RootInput
+  maxEvents:  -1            # number of events to read
+} # source
+
+trackSplit: {
+  module_type: TrackSplitter
+  module_label: trackSplit
+  pfParticleInputTag: "pandoraNu"
+  reverseHits: false
+  hitSubsetMode: 1 #wire even
+  #hitSubsetMode: 2 #wire odd
+  #hitSubsetMode: 3 #first half
+  #hitSubsetMode: 4 #second half
+  #hitSubsetMode: 5 #interleave, 4 parts, use part 0
+  #hitSubsetMode: 6 #interleave, 4 parts, use part 2
+  #hitSubsetMode: 7 #interleave, 6 parts, use part 0,1
+  #hitSubsetMode: 8 #interleave, 6 parts, use part 3,4
+  midPointHalfGap: 10
+  interleaveStep: 15
+  mixMode: true
+}
+
+splittrackntuplizer: {
+  module_type:  SplitTrackNtuplizer
+  module_label: splittrackntuplizer
+  inputTracksLabel: pandoraNu
+  inputTracksLabel1st: pandoraNu
+  inputTracksLabel2nd: pandoraNu
+  doSplitVertices: false
+  SelectEvents: [ filtpro ]
+}
+
+physics: {
+  producers: {
+    trackSplitHalf1Gap10:  @local::trackSplit
+    trackSplitHalf2Gap10:  @local::trackSplit
+    trackSplitHalf1Gap15:  @local::trackSplit
+    trackSplitHalf2Gap15:  @local::trackSplit
+    trackSplitInt4Use0Step10:  @local::trackSplit
+    trackSplitInt4Use2Step10:  @local::trackSplit
+    trackSplitInt4Use0Step15:  @local::trackSplit
+    trackSplitInt4Use2Step15:  @local::trackSplit
+    trackSplitInt6Use01Step10:  @local::trackSplit
+    trackSplitInt6Use34Step10:  @local::trackSplit
+    trackSplitInt6Use01Step15:  @local::trackSplit
+    trackSplitInt6Use34Step15:  @local::trackSplit
+    pandoraNuKalmanTrackHalf1Gap10: @local::physics.producers.pandoraNuKalmanTrack
+    pandoraNuKalmanTrackHalf2Gap10: @local::physics.producers.pandoraNuKalmanTrack
+    pandoraNuKalmanTrackHalf1Gap15: @local::physics.producers.pandoraNuKalmanTrack
+    pandoraNuKalmanTrackHalf2Gap15: @local::physics.producers.pandoraNuKalmanTrack
+    pandoraNuKalmanTrackInt4Use0Step10: @local::physics.producers.pandoraNuKalmanTrack
+    pandoraNuKalmanTrackInt4Use2Step10: @local::physics.producers.pandoraNuKalmanTrack
+    pandoraNuKalmanTrackInt4Use0Step15: @local::physics.producers.pandoraNuKalmanTrack
+    pandoraNuKalmanTrackInt4Use2Step15: @local::physics.producers.pandoraNuKalmanTrack
+    pandoraNuKalmanTrackInt6Use01Step10: @local::physics.producers.pandoraNuKalmanTrack
+    pandoraNuKalmanTrackInt6Use34Step10: @local::physics.producers.pandoraNuKalmanTrack
+    pandoraNuKalmanTrackInt6Use01Step15: @local::physics.producers.pandoraNuKalmanTrack
+    pandoraNuKalmanTrackInt6Use34Step15: @local::physics.producers.pandoraNuKalmanTrack
+    NuMuCCSelectionII:      @local::microboone_tpcNeutrinoID
+  }
+  filters:  { tpcneutrinoidfilter : @local::microboone_tpcneutrinoidfilter }
+  analyzers: {
+    splitTrackNtuplizer:  @local::splittrackntuplizer
+    splitTrackNtuplizerKalmanTrackHalf10:  @local::splittrackntuplizer
+    splitTrackNtuplizerKalmanTrackHalf15:  @local::splittrackntuplizer
+    splitTrackNtuplizerKalmanTrackInt4Step10:  @local::splittrackntuplizer
+    splitTrackNtuplizerKalmanTrackInt4Step15:  @local::splittrackntuplizer
+    splitTrackNtuplizerKalmanTrackInt6Step10:  @local::splittrackntuplizer
+    splitTrackNtuplizerKalmanTrackInt6Step15:  @local::splittrackntuplizer
+  }
+
+  filt:          [ NuMuCCSelectionII, tpcneutrinoidfilter ]
+
+  pro:  [
+  	  trackSplitHalf1Gap10, trackSplitHalf2Gap10, pandoraNuKalmanTrackHalf1Gap10, pandoraNuKalmanTrackHalf2Gap10 #,
+  	  #trackSplitHalf1Gap15, trackSplitHalf2Gap15, pandoraNuKalmanTrackHalf1Gap15, pandoraNuKalmanTrackHalf2Gap15,
+  	  #trackSplitInt4Use0Step10, trackSplitInt4Use2Step10, pandoraNuKalmanTrackInt4Use0Step10, pandoraNuKalmanTrackInt4Use2Step10,
+  	  #trackSplitInt4Use0Step15, trackSplitInt4Use2Step15, pandoraNuKalmanTrackInt4Use0Step15, pandoraNuKalmanTrackInt4Use2Step15,
+  	  #trackSplitInt6Use01Step10, trackSplitInt6Use34Step10, pandoraNuKalmanTrackInt6Use01Step10, pandoraNuKalmanTrackInt6Use34Step10,
+  	  #trackSplitInt6Use01Step15, trackSplitInt6Use34Step15, pandoraNuKalmanTrackInt6Use01Step15, pandoraNuKalmanTrackInt6Use34Step15
+  	]
+
+  filtpro: [ NuMuCCSelectionII, tpcneutrinoidfilter, trackSplitHalf1Gap10, trackSplitHalf2Gap10, pandoraNuKalmanTrackHalf1Gap10, pandoraNuKalmanTrackHalf2Gap10 ]
+
+  ana:  [
+  	  #splitTrackNtuplizer,
+	  splitTrackNtuplizerKalmanTrackHalf10 #,
+  	  #splitTrackNtuplizerKalmanTrackHalf15,
+	  #splitTrackNtuplizerKalmanTrackInt4Step10,
+	  #splitTrackNtuplizerKalmanTrackInt4Step15,
+	  #splitTrackNtuplizerKalmanTrackInt6Step10,
+	  #splitTrackNtuplizerKalmanTrackInt6Step15
+	]
+
+  #trigger_paths: [ filt, pro ]
+  trigger_paths: [ filtpro ]
+  end_paths:     [ ana ]
+
+} # physics
+
+physics.analyzers.splitTrackNtuplizer.doSplitVertices: false
+
+physics.producers.trackSplitHalf1Gap10.hitSubsetMode: 3
+physics.producers.trackSplitHalf1Gap10.midPointHalfGap: 10
+physics.producers.trackSplitHalf2Gap10.hitSubsetMode: 4
+physics.producers.trackSplitHalf2Gap10.midPointHalfGap: 10
+physics.producers.pandoraNuKalmanTrackHalf1Gap10.inputs.inputPFParticleLabel: "trackSplitHalf1Gap10"
+physics.producers.pandoraNuKalmanTrackHalf2Gap10.inputs.inputPFParticleLabel: "trackSplitHalf2Gap10"
+physics.producers.pandoraNuKalmanTrackHalf1Gap10.fitter.hitErr2ScaleFact: 1
+physics.producers.pandoraNuKalmanTrackHalf2Gap10.fitter.hitErr2ScaleFact: 1
+physics.analyzers.splitTrackNtuplizerKalmanTrackHalf10.inputTracksLabel:    pandoraNuKalmanTrack
+physics.analyzers.splitTrackNtuplizerKalmanTrackHalf10.inputTracksLabel1st: pandoraNuKalmanTrackHalf1Gap10
+physics.analyzers.splitTrackNtuplizerKalmanTrackHalf10.inputTracksLabel2nd: pandoraNuKalmanTrackHalf2Gap10
+
+physics.producers.trackSplitHalf1Gap15.hitSubsetMode: 3
+physics.producers.trackSplitHalf1Gap15.midPointHalfGap: 15
+physics.producers.trackSplitHalf2Gap15.hitSubsetMode: 4
+physics.producers.trackSplitHalf2Gap15.midPointHalfGap: 15
+physics.producers.pandoraNuKalmanTrackHalf1Gap15.inputs.inputPFParticleLabel: "trackSplitHalf1Gap15"
+physics.producers.pandoraNuKalmanTrackHalf2Gap15.inputs.inputPFParticleLabel: "trackSplitHalf2Gap15"
+physics.producers.pandoraNuKalmanTrackHalf1Gap15.fitter.hitErr2ScaleFact: 1
+physics.producers.pandoraNuKalmanTrackHalf2Gap15.fitter.hitErr2ScaleFact: 1
+physics.analyzers.splitTrackNtuplizerKalmanTrackHalf15.inputTracksLabel:    pandoraNuKalmanTrack
+physics.analyzers.splitTrackNtuplizerKalmanTrackHalf15.inputTracksLabel1st: pandoraNuKalmanTrackHalf1Gap15
+physics.analyzers.splitTrackNtuplizerKalmanTrackHalf15.inputTracksLabel2nd: pandoraNuKalmanTrackHalf2Gap15
+
+physics.producers.trackSplitInt4Use0Step10.hitSubsetMode: 5
+physics.producers.trackSplitInt4Use0Step10.interleaveStep: 10
+physics.producers.trackSplitInt4Use2Step10.hitSubsetMode: 6
+physics.producers.trackSplitInt4Use2Step10.interleaveStep: 10
+physics.producers.pandoraNuKalmanTrackInt4Use0Step10.inputs.inputPFParticleLabel: "trackSplitInt4Use0Step10"
+physics.producers.pandoraNuKalmanTrackInt4Use2Step10.inputs.inputPFParticleLabel: "trackSplitInt4Use2Step10"
+physics.producers.pandoraNuKalmanTrackInt4Use0Step10.fitter.hitErr2ScaleFact: 1
+physics.producers.pandoraNuKalmanTrackInt4Use2Step10.fitter.hitErr2ScaleFact: 1
+physics.analyzers.splitTrackNtuplizerKalmanTrackInt4Step10.inputTracksLabel:    pandoraNuKalmanTrack
+physics.analyzers.splitTrackNtuplizerKalmanTrackInt4Step10.inputTracksLabel1st: pandoraNuKalmanTrackInt4Use0Step10
+physics.analyzers.splitTrackNtuplizerKalmanTrackInt4Step10.inputTracksLabel2nd: pandoraNuKalmanTrackInt4Use2Step10
+
+physics.producers.trackSplitInt4Use0Step15.hitSubsetMode: 5
+physics.producers.trackSplitInt4Use0Step15.interleaveStep: 15
+physics.producers.trackSplitInt4Use2Step15.hitSubsetMode: 6
+physics.producers.trackSplitInt4Use2Step15.interleaveStep: 15
+physics.producers.pandoraNuKalmanTrackInt4Use0Step15.inputs.inputPFParticleLabel: "trackSplitInt4Use0Step15"
+physics.producers.pandoraNuKalmanTrackInt4Use2Step15.inputs.inputPFParticleLabel: "trackSplitInt4Use2Step15"
+physics.producers.pandoraNuKalmanTrackInt4Use0Step15.fitter.hitErr2ScaleFact: 1
+physics.producers.pandoraNuKalmanTrackInt4Use2Step15.fitter.hitErr2ScaleFact: 1
+physics.analyzers.splitTrackNtuplizerKalmanTrackInt4Step15.inputTracksLabel:    pandoraNuKalmanTrack
+physics.analyzers.splitTrackNtuplizerKalmanTrackInt4Step15.inputTracksLabel1st: pandoraNuKalmanTrackInt4Use0Step15
+physics.analyzers.splitTrackNtuplizerKalmanTrackInt4Step15.inputTracksLabel2nd: pandoraNuKalmanTrackInt4Use2Step15
+
+physics.producers.trackSplitInt6Use01Step10.hitSubsetMode: 7
+physics.producers.trackSplitInt6Use01Step10.interleaveStep: 10
+physics.producers.trackSplitInt6Use34Step10.hitSubsetMode: 8
+physics.producers.trackSplitInt6Use34Step10.interleaveStep: 10
+physics.producers.pandoraNuKalmanTrackInt6Use01Step10.inputs.inputPFParticleLabel: "trackSplitInt6Use01Step10"
+physics.producers.pandoraNuKalmanTrackInt6Use34Step10.inputs.inputPFParticleLabel: "trackSplitInt6Use34Step10"
+physics.producers.pandoraNuKalmanTrackInt6Use01Step10.fitter.hitErr2ScaleFact: 1
+physics.producers.pandoraNuKalmanTrackInt6Use34Step10.fitter.hitErr2ScaleFact: 1
+physics.analyzers.splitTrackNtuplizerKalmanTrackInt6Step10.inputTracksLabel:    pandoraNuKalmanTrack
+physics.analyzers.splitTrackNtuplizerKalmanTrackInt6Step10.inputTracksLabel1st: pandoraNuKalmanTrackInt6Use01Step10
+physics.analyzers.splitTrackNtuplizerKalmanTrackInt6Step10.inputTracksLabel2nd: pandoraNuKalmanTrackInt6Use34Step10
+
+physics.producers.trackSplitInt6Use01Step15.hitSubsetMode: 7
+physics.producers.trackSplitInt6Use01Step15.interleaveStep: 15
+physics.producers.trackSplitInt6Use34Step15.hitSubsetMode: 8
+physics.producers.trackSplitInt6Use34Step15.interleaveStep: 15
+physics.producers.pandoraNuKalmanTrackInt6Use01Step15.inputs.inputPFParticleLabel: "trackSplitInt6Use01Step15"
+physics.producers.pandoraNuKalmanTrackInt6Use34Step15.inputs.inputPFParticleLabel: "trackSplitInt6Use34Step15"
+physics.producers.pandoraNuKalmanTrackInt6Use01Step15.fitter.hitErr2ScaleFact: 1
+physics.producers.pandoraNuKalmanTrackInt6Use34Step15.fitter.hitErr2ScaleFact: 1
+physics.analyzers.splitTrackNtuplizerKalmanTrackInt6Step15.inputTracksLabel:    pandoraNuKalmanTrack
+physics.analyzers.splitTrackNtuplizerKalmanTrackInt6Step15.inputTracksLabel1st: pandoraNuKalmanTrackInt6Use01Step15
+physics.analyzers.splitTrackNtuplizerKalmanTrackInt6Step15.inputTracksLabel2nd: pandoraNuKalmanTrackInt6Use34Step15
+
+# Adjust the window/offset for the reduced total frame size (9600 -> 6400 ticks)
+services.DetectorPropertiesService.NumberTimeSamples:                  6400
+services.DetectorPropertiesService.ReadOutWindowSize:                  6400
+services.DetectorClocksService.InheritClockConfig:                     false
+services.DetectorClocksService.TriggerOffsetTPC:                       -0.400e3
+
+physics.producers.NuMuCCSelectionII.NuMuCCSelectionIIAlg.Debug: 1
+physics.producers.NuMuCCSelectionII.NuMuCCSelectionIIAlg.BeamMin : 3.3 #
+physics.producers.NuMuCCSelectionII.NuMuCCSelectionIIAlg.BeamMax : 4.9 #
+
+# define the list of LArSoft modules to run through the simulate path
+
+physics.producers.NuMuCCSelectionII.NeutrinoIDAlgName:                         "NuMuCCSelectionIIAlg"
+physics.filters.tpcneutrinoidfilter.VertexModuleLabelVec:                    ["pandoraNu"]
+physics.filters.tpcneutrinoidfilter.VtxTrackAssnModuleLabelVec:              ["NuMuCCSelectionII"]
+physics.filters.tpcneutrinoidfilter.Cluster2DCosmicProducerLabel:            ""
+physics.filters.tpcneutrinoidfilter.Cluster2DCosmicClusterAssns:             ""
+
+services.SpaceCharge.EnableCorrSCE: true
+services.SpaceCharge.EnableSimEfieldSCE: true
+services.SpaceCharge.EnableSimSpatialSCE: true

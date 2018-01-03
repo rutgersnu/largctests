@@ -1,0 +1,159 @@
+#include "services_microboone.fcl"
+#include "time_memory_tracker_microboone.fcl"
+#include "trackproducerfrompfparticle.fcl"
+
+#include "tpcneutrinoidfilter_microboone.fcl"
+#include "filters.fcl"
+
+#include "reco_uboone_mcc8_driver_common.fcl"
+
+process_name: TrackMaker
+
+services: {
+  TFileService:           { fileName: "dummyAnalysis-pf.root" }
+  @table::microboone_reco_mcc8_services
+  TimeTracker: { }
+} # services
+services.MemoryPeakReporter: @erase
+
+source:
+{
+  module_type: RootInput
+  firstEvent : 1
+  maxEvents:  -1
+}
+
+source.inputCommands:        [ "keep *_*_*_*", "drop *_opfiltercommon__McRecoStage1" ]
+
+fittedvertexntuplizer: {
+   module_type: FittedVertexNtuplizer
+   inputs: {
+      inputPFLabel: "pandoraNu"
+      fittedTracksLabel: "pandoraNuKalmanTrack"
+   }
+   options: {
+      debugLevel: 0
+   }
+   propagator: {
+      minStep: 1.0
+      maxElossFrac: 0.1
+      maxNit: 10
+      tcut: 10.
+      wrongDirDistTolerance: 0.01
+      propPinvErr: false
+   }
+}
+
+outputs:{
+   out1: {
+      compressionLevel: 1
+      dataTier: "reconstructed"
+      fastCloning: false
+      fileName: "test_trackMaker.root"
+      module_type: "RootOutput"
+      saveMemoryObjectThreshold: 0
+      outputCommands: ["drop *_*_*_*",
+      		       "keep *_gaushit_*_*",
+      		       "keep *_*_*_TrackMaker"]
+   }
+}
+
+physics: {
+  producers: {
+     pandoraNuKalmanTrack: @local::kalmantrackfit
+     trackproducer: @local::trackproducerfrompfparticle
+     NuMuCCSelectionII:      @local::microboone_tpcNeutrinoID
+  }
+  filters:  { tpcneutrinoidfilter : @local::microboone_tpcneutrinoidfilter }
+  analyzers: {
+    trackingperformancePN: {
+      module_label: TrackingPerformance
+      module_type:  TrackingPerformance
+      inputTracksLabel: pandoraNu
+      minHits: 10
+      selectPdgCode: -1
+    } # trackingperformance
+    trackingperformancePNKT: {
+      module_label: TrackingPerformance
+      module_type:  TrackingPerformance
+      inputTracksLabel: pandoraNuKalmanTrack
+      minHits: 10
+      selectPdgCode: -1
+    } # trackingperformance
+    trackingperformance: {
+      module_label: TrackingPerformance
+      module_type:  TrackingPerformance
+      inputTracksLabel: trackproducer
+      minHits: 10
+      selectPdgCode: -1
+    } # trackingperformance
+    trackingperformanceMu: {
+      module_label: TrackingPerformance
+      module_type:  TrackingPerformance
+      inputTracksLabel: trackproducer
+      minHits: 10
+      selectPdgCode: 13
+    } # trackingperformanceMu
+    trackingperformancePi: {
+      module_label: TrackingPerformance
+      module_type:  TrackingPerformance
+      inputTracksLabel: trackproducer
+      minHits: 10
+      selectPdgCode: 211
+    } # trackingperformancePi
+    trackingperformanceK: {
+      module_label: TrackingPerformance
+      module_type:  TrackingPerformance
+      inputTracksLabel: trackproducer
+      minHits: 10
+      selectPdgCode: 321
+    } # trackingperformanceK
+    trackingperformanceP: {
+      module_label: TrackingPerformance
+      module_type:  TrackingPerformance
+      inputTracksLabel: trackproducer
+      minHits: 10
+      selectPdgCode: 2212
+    } # trackingperformanceP
+    fittedvertexntuplizer:  @local::fittedvertexntuplizer
+    fittedvertexntuplizerinputs:  @local::fittedvertexntuplizer
+  } # analyzers
+
+  reco: [ pandoraNuKalmanTrack, trackproducer ]
+  filt: [ NuMuCCSelectionII, tpcneutrinoidfilter ]
+#  ana:  [ trackingperformance ]
+  ana:  [ trackingperformancePN, trackingperformancePNKT, trackingperformance, trackingperformanceMu, trackingperformancePi, trackingperformanceK, trackingperformanceP, fittedvertexntuplizer, fittedvertexntuplizerinputs ]
+  #stream1: [ out1 ]
+
+  trigger_paths: [ reco, filt ]
+  #end_paths: [ ana, stream1 ]
+  end_paths: [ ana ]
+  #end_paths: [ stream1 ]
+} # physics
+
+physics.producers.NuMuCCSelectionII.NeutrinoIDAlgName: "NuMuCCSelectionIIAlg"
+physics.filters.tpcneutrinoidfilter.VertexModuleLabelVec:                    ["pandoraNu"]
+physics.filters.tpcneutrinoidfilter.VtxTrackAssnModuleLabelVec:              ["NuMuCCSelectionII"]
+physics.filters.tpcneutrinoidfilter.Cluster2DCosmicProducerLabel:            ""
+physics.filters.tpcneutrinoidfilter.Cluster2DCosmicClusterAssns:             ""
+
+physics.producers.pandoraNuKalmanTrack.inputs.inputPFParticleLabel: "pandoraNu"
+physics.producers.pandoraNuKalmanTrack.inputs.inputShowersLabel:    ""
+physics.producers.pandoraNuKalmanTrack.inputs.inputTracksLabel:     ""
+physics.producers.pandoraNuKalmanTrack.inputs.inputCaloLabel:       ""
+physics.producers.pandoraNuKalmanTrack.inputs.inputPidLabel:        ""
+physics.producers.pandoraNuKalmanTrack.options.trackFromPF:         true
+physics.producers.pandoraNuKalmanTrack.options.showerFromPF:        false
+
+physics.producers.trackproducer.inputCollection: "pandoraNu"
+physics.producers.trackproducer.trackMaker.options.momFromTagAndPid: true
+physics.producers.trackproducer.trackMaker.options.pidInputTag: pandoraNupid
+physics.producers.trackproducer.trackMaker.options.contInputTag: pandoraNuContTag
+physics.producers.trackproducer.trackMaker.options.defaultPdgId: 2212
+#physics.producers.trackproducer.trackMaker.fitter.hitErr2ScaleFact: 0.25
+
+physics.analyzers.fittedvertexntuplizerinputs.inputs.fittedTracksLabel: "trackproducer"
+
+services.SpaceCharge.EnableCorrSCE: true
+services.SpaceCharge.EnableSimEfieldSCE: true
+services.SpaceCharge.EnableSimSpatialSCE: true
