@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+
+<!-- Production Project -->
+
+<!DOCTYPE project [
+<!ENTITY user_id "cerati">
+<!ENTITY name "ntuple_splitvertex_bnb_nu_cosmic_mcc8p6">
+<!ENTITY number_of_events "500000">
+<!ENTITY relntuple "v06_61_00">
+<!ENTITY file_type "mc">
+<!ENTITY run_type "physics">
+<!ENTITY tag "mcc8.6">
+<!ENTITY prod_mode "test">
+]>
+
+<job>
+
+<project name="&name;">
+
+  <!-- Project size -->
+  <numevents>&number_of_events;</numevents>
+
+  <!-- Operating System -->
+  <os>SL6</os>
+
+  <!-- Project Version -->
+  <version>&prod_mode;_&relntuple;</version>
+
+  <!-- Batch resources -->
+  <resource>DEDICATED,OPPORTUNISTIC,OFFSITE</resource>
+
+  <!-- Larsoft information -->
+  <larsoft>
+    <tag>&relntuple;</tag>
+    <qual>e14:prof</qual>
+    <local>/pnfs/uboone/scratch/users/cerati/vertexresoltest/local.tar</local>
+  </larsoft>
+
+  <check>0</check>
+  <copy>0</copy>
+
+  <!-- Project stages -->
+
+  <stage name="ntuple">
+    <fcl>/pnfs/uboone/scratch/users/cerati/vertexresoltest/splitvertex.fcl</fcl>
+    <outdir>/pnfs/uboone/scratch/users/&user_id;/&tag;/&relntuple;/ntuple/&name;</outdir>
+    <logdir>/pnfs/uboone/scratch/users/&user_id;/&tag;/&relntuple;/ntuple/&name;</logdir>
+    <workdir>/pnfs/uboone/scratch/users/&user_id;/work/&tag;/&relntuple;/ntuple/&name;</workdir>
+    <inputdef>prodgenie_bnb_nu_cosmic_uboone_mcc8.6_reco2</inputdef>
+    <maxfilesperjob>50</maxfilesperjob>
+    <numjobs>200</numjobs>
+    <memory>2000</memory>
+    <schema>root</schema><!-- xrootd -->
+  </stage>
+
+</project>
+
+</job>
