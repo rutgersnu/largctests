@@ -394,7 +394,6 @@ void SplitVertexNtuplizer::analyze(art::Event const & e)
 {
   //
   using namespace std;
-  using namespace trkf;
   using namespace recob::tracking;
   //
   art::ValidHandle<art::TriggerResults> filter = e.getValidHandle<art::TriggerResults>("TriggerResults");
