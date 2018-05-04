@@ -1,0 +1,35 @@
+#include "services_microboone.fcl"
+
+process_name: VHF
+
+services: {
+  TFileService:           { fileName: "dummyAnalysis-pf.root" }
+  @table::microboone_services_reco
+  @table::microboone_services_ana #for backtracker
+  TimeTracker: { }
+} # services
+services.MemoryPeakReporter: @erase
+
+source:
+{
+  module_type: RootInput
+  firstEvent : 1
+  maxEvents:  -1
+}
+
+vectorhitfinder: {
+  module_type:  VectorHitFinder
+}
+
+physics: {
+   producers: {}
+   analyzers: { vectorhitfinder: @local::vectorhitfinder }
+
+   ana:  [ vectorhitfinder ]
+   end_paths: [ ana ]
+}
+
+services.DetectorPropertiesService.NumberTimeSamples:  6400
+services.DetectorPropertiesService.ReadOutWindowSize:  6400
+services.DetectorClocksService.InheritClockConfig:     false
+services.DetectorClocksService.TriggerOffsetTPC:       -0.400e3
