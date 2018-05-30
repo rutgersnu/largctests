@@ -109,6 +109,10 @@ physics: {
       	   inputLabel: pandoraCosmic
       }
       mcsfitter: {@table::mcsfitproducer.fitter}
+      mcsfittermc: {
+                    @table::mcsfitproducer.fitter
+                    angResol: 0
+		   }
       #SelectEvents: [sel2]
     } # trajmcsntupleCosmic
     trajmcsntupleNu: {
@@ -118,6 +122,10 @@ physics: {
            inputLabel: pandoraNu
       }
       mcsfitter: {@table::mcsfitproducer.fitter}
+      mcsfittermc: {
+                    @table::mcsfitproducer.fitter
+                    angResol: 0
+		   }
       #SelectEvents: [sel2]
     } # trajmcsntupleNu
     trajmcsntupleNuPMA: {
@@ -127,6 +135,10 @@ physics: {
            inputLabel: pandoraNuPMA
       }
       mcsfitter: {@table::mcsfitproducer.fitter}
+      mcsfittermc: {
+                    @table::mcsfitproducer.fitter
+                    angResol: 0
+		   }
       #SelectEvents: [sel2]
     } # trajmcsntupleNuPMA
   }

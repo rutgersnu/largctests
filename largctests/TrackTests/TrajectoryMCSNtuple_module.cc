@@ -60,6 +60,9 @@ public:
     fhicl::Table<trkf::TrajectoryMCSFitter::Config> mcsfitter {
       Name("mcsfitter")
     };
+    fhicl::Table<trkf::TrajectoryMCSFitter::Config> mcsfittermc {
+      Name("mcsfittermc")
+    };
   };
   using Parameters = art::EDAnalyzer::Table<Config>;
 
@@ -86,6 +89,7 @@ private:
   std::string inputTracksLabel;
   trkf::TrackMomentumCalculator tmc;
   trkf::TrajectoryMCSFitter mcsfitter;
+  trkf::TrajectoryMCSFitter mcsfittermc;
   TTree* tree;
   //
   int    run, subrun, eventid;
@@ -133,6 +137,26 @@ private:
   std::string simProc;
   int    simIsContained;
   int    simAndTrkSameDir;
+  //
+  double simMom_MuFwd, simMomErr_MuFwd, simLL_MuFwd;
+  double simMom_MuBwd, simMomErr_MuBwd, simLL_MuBwd;
+  double simMom_Mu, simMomErr_Mu, simLL_Mu;
+  double simDeltaLL_Mu;
+  int    simIsBestFwd_Mu;
+  //
+  std::vector<double> simSegRadLengths;
+  std::vector<double> simScattAngles;
+  std::vector<double> simL;
+  std::vector<double> simP;
+  // std::vector<double> simPbogus;
+  std::vector<double> simE;
+  std::vector<double> simRP;
+  std::vector<double> simRE;
+  std::vector<double> simRMS;
+  std::vector<double> simRMSR;
+  std::vector<double> simA3d;
+  std::vector<double> simA2dxz;
+  std::vector<double> simA2dyz;
   //
   int passSelII;
   //
@@ -225,6 +249,31 @@ void TrajectoryMCSNtuple::resetTree() {
   simProc = "";
   simIsContained = -999;
   simAndTrkSameDir = -999;
+  simMom_MuFwd = -999;
+  simMomErr_MuFwd = -999;
+  simLL_MuFwd = -999;
+  simMom_MuBwd = -999;
+  simMomErr_MuBwd = -999;
+  simLL_MuBwd = -999;
+  simMom_Mu = -999;
+  simMomErr_Mu = -999;
+  simLL_Mu = -999;
+  simDeltaLL_Mu = -999;
+  simIsBestFwd_Mu = -999;
+  simSegRadLengths.clear();
+  simScattAngles.clear();
+  simL.clear();
+  simE.clear();
+  simP.clear();
+  // simPbogus.clear();
+  simRE.clear();
+  simRP.clear();
+  simRMS.clear();
+  simRMSR.clear();
+  simA3d.clear();
+  simA2dxz.clear();
+  simA2dyz.clear();
+  //
   passSelII = -999;
 }
 
@@ -324,12 +373,39 @@ void TrajectoryMCSNtuple::beginJob()
   tree->Branch("simProc", &simProc);
   tree->Branch("simIsContained", &simIsContained, "simIsContained/I");
   tree->Branch("simAndTrkSameDir", &simAndTrkSameDir, "simAndTrkSameDir/I");
+  //
+  tree->Branch("simMom_MuFwd"   , &simMom_MuFwd   , "simMom_MuFwd/D"   );
+  tree->Branch("simMomErr_MuFwd", &simMomErr_MuFwd, "simMomErr_MuFwd/D");
+  tree->Branch("simLL_MuFwd"    , &simLL_MuFwd    , "simLL_MuFwd/D"    );
+  tree->Branch("simMom_MuBwd"   , &simMom_MuBwd   , "simMom_MuBwd/D"   );
+  tree->Branch("simMomErr_MuBwd", &simMomErr_MuBwd, "simMomErr_MuBwd/D");
+  tree->Branch("simLL_MuBwd"    , &simLL_MuBwd    , "simLL_MuBwd/D"    );
+  tree->Branch("simMom_Mu"      , &simMom_Mu      , "simMom_Mu/D"      );
+  tree->Branch("simMomErr_Mu"   , &simMomErr_Mu   , "simMomErr_Mu/D"   );
+  tree->Branch("simLL_Mu"       , &simLL_Mu       , "simLL_Mu/D"       );
+  tree->Branch("simDeltaLL_Mu"  , &simDeltaLL_Mu  , "simDeltaLL_Mu/D"  );
+  tree->Branch("simIsBestFwd_Mu", &simIsBestFwd_Mu, "simIsBestFwd_Mu/I");
+  //
+  tree->Branch("simSegRadLengths", &simSegRadLengths);
+  tree->Branch("simScattAngles"  , &simScattAngles  );
+  tree->Branch("simL"  , &simL  );
+  tree->Branch("simE"  , &simE  );
+  tree->Branch("simP"  , &simP  );
+  // tree->Branch("simPbogus"  , &simPbogus  );
+  tree->Branch("simRE"  , &simRE  );
+  tree->Branch("simRP"  , &simRP  );
+  tree->Branch("simRMS"  , &simRMS  );
+  tree->Branch("simRMSR"  , &simRMSR  );
+  tree->Branch("simA3d"  , &simA3d  );
+  tree->Branch("simA2dxz"  , &simA2dxz  );
+  tree->Branch("simA2dyz"  , &simA2dyz  );
+  //
   tree->Branch("passSelII", &passSelII, "passSelII/I");
   //
 }
 
 TrajectoryMCSNtuple::TrajectoryMCSNtuple(Parameters const & p)
-  : EDAnalyzer(p), inputTracksLabel(p().inputs().inputLabel()), mcsfitter(p().mcsfitter) {}
+  : EDAnalyzer(p), inputTracksLabel(p().inputs().inputLabel()), mcsfitter(p().mcsfitter), mcsfittermc(p().mcsfittermc) {}
 
 TrajectoryMCSNtuple::~TrajectoryMCSNtuple() {}
 
@@ -519,6 +595,23 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 			    mctrack.Start().Position().Y()>-85. && mctrack.Start().Position().Y()<85.   && mctrack.End().Position().Y()>-85. && mctrack.End().Position().Y()<85.  &&
 			    mctrack.Start().Position().Z()>30.  && mctrack.Start().Position().Z()<1010. && mctrack.End().Position().Z()>30.  && mctrack.End().Position().Z()<1010.);
 	//
+	std::vector< Point_t > positions;
+	std::vector< Vector_t > momenta;
+	//
+	double thislen = 0.;
+	std::vector< double > lenghts;
+	std::vector< double > moms;
+	// std::vector< double > momsBogus;
+	std::vector< double > rmss;
+	std::vector< double > es;
+	std::vector< double > rmoms;
+	std::vector< double > res;
+	std::vector< double > rmsRs;
+	std::vector< Vector_t > startsegdirs;
+	bool newseg = true;
+	const double thisSegLen = (trkLength>(14.*3) ? 14. : trkLength/double(3) );
+	const double m = mcsfittermc.mass(13);
+	//
 	double mclen = 0.;
 	for (unsigned int imc=0; imc<mctrack.size(); ++imc) {
 	  if (mctrack[imc].X()<0.    || mctrack[imc].X()>260. ) continue;
@@ -527,21 +620,67 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 	  simMcStepPosXtmp.push_back( mctrack[imc].X() );
 	  simMcStepPosYtmp.push_back( mctrack[imc].Y() );
 	  simMcStepPosZtmp.push_back( mctrack[imc].Z() );
-	  if (simMcStepPosXtmp.size()>1) {
-	    mclen+=sqrt( (mctrack[imc].X()-mctrack[imc-1].X())*(mctrack[imc].X()-mctrack[imc-1].X()) +
-			 (mctrack[imc].Y()-mctrack[imc-1].Y())*(mctrack[imc].Y()-mctrack[imc-1].Y()) +
-			 (mctrack[imc].Z()-mctrack[imc-1].Z())*(mctrack[imc].Z()-mctrack[imc-1].Z()) );
+	  //
+	  Vector_t mcmom(mctrack[imc].Momentum().X()*0.001,mctrack[imc].Momentum().Y()*0.001,mctrack[imc].Momentum().Z()*0.001);
+	  positions.push_back({mctrack[imc].X(),mctrack[imc].Y(),mctrack[imc].Z()});
+	  momenta.push_back(mcmom);
+	  Vector_t mcdir = mcmom.Unit();
+	  if (newseg) {
+	    startsegdirs.push_back(mcdir);
+	    newseg = false;
+	    moms.push_back(mcmom.R());
+	    es.push_back(mctrack[imc].Momentum().E()*0.001);
+	    //
+	    double e = mcsfittermc.GetE(std::sqrt(mcstartmom.R()*mcstartmom.R() - m*m), mclen, m);
+	    double p = std::sqrt(e*e - m*m);
+	    rmoms.push_back(p);
+	    res.push_back(e);
 	  }
+	  if (imc<(mctrack.size()-1)) {
+	    if (mctrack[imc].X()<0.    || mctrack[imc].X()>260. ||
+		mctrack[imc].Y()<-115. || mctrack[imc].Y()>115. ||
+		mctrack[imc].Z()<0.    || mctrack[imc].Z()>1040.)
+	      {
+		//do nothing
+	      } else {
+	      mclen+=sqrt( (mctrack[imc+1].X()-mctrack[imc].X())*(mctrack[imc+1].X()-mctrack[imc].X()) +
+			   (mctrack[imc+1].Y()-mctrack[imc].Y())*(mctrack[imc+1].Y()-mctrack[imc].Y()) +
+			   (mctrack[imc+1].Z()-mctrack[imc].Z())*(mctrack[imc+1].Z()-mctrack[imc].Z()) );
+	      //check segment length along the initial direction //fixme
+	      // thislen += sqrt( (mctrack[imc+1].X()-mctrack[imc].X())*(mctrack[imc+1].X()-mctrack[imc].X()) +
+	      // 		     (mctrack[imc+1].Y()-mctrack[imc].Y())*(mctrack[imc+1].Y()-mctrack[imc].Y()) +
+	      // 		     (mctrack[imc+1].Z()-mctrack[imc].Z())*(mctrack[imc+1].Z()-mctrack[imc].Z()) );
+	      thislen += startsegdirs.back().Dot(Vector_t(mctrack[imc+1].X()-mctrack[imc].X(),mctrack[imc+1].Y()-mctrack[imc].Y(),mctrack[imc+1].Z()-mctrack[imc].Z()));
+	    }
+	  }
+	  if (thislen>thisSegLen-0.5) {
+	    lenghts.push_back(thislen);
+	    //
+	    // momentum is before the segment, but rms needs the actual length so goes here
+	    double beta = sqrt( 1. - ((m*m)/(moms.back()*moms.back() + m*m)) );
+	    double rms = ( mcsfittermc.MomentumDependentConstant(moms.back()) / (moms.back()*beta) ) * ( 1.0 + 0.038 * std::log( thislen/14. ) ) * sqrt( thislen/14. );
+	    rmss.push_back(rms);
+	    //
+	    double betaR = sqrt( 1. - ((m*m)/(rmoms.back()*rmoms.back() + m*m)) );
+	    double rmsR = ( mcsfittermc.MomentumDependentConstant(rmoms.back()) / (rmoms.back()*betaR) ) * ( 1.0 + 0.038 * std::log( thislen/14. ) ) * sqrt( thislen/14. );
+	    rmsRs.push_back(rmsR);
+	    //
+	    // momsBogus.push_back(mcmom.R());
+	    //
+	    thislen = 0.;
+	    newseg = true;
+	  }
+	  //update values until the last point
 	  simEndPosX = mctrack[imc].X();
 	  simEndPosY = mctrack[imc].Y();
 	  simEndPosZ = mctrack[imc].Z();
-	  Vector_t mcmom(mctrack[imc].Momentum().X()*0.001,mctrack[imc].Momentum().Y()*0.001,mctrack[imc].Momentum().Z()*0.001);
-	  simMomEnd = mcmom.R();
-	  Vector_t mcdir = mcmom.Unit();
 	  simEndDirX = mcdir.X();
 	  simEndDirY = mcdir.Y();
 	  simEndDirZ = mcdir.Z();
+	  simMomEnd = mcmom.R();
 	}
+	// momsBogus.push_back(simMomEnd);
+	// momsBogus.erase(momsBogus.begin());
 	//
 	simMom = mcstartmom.R();
 	simLength = mclen;
@@ -558,6 +697,67 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 	simProc = mctrack.Process();
 	simIsContained = mccontained;
 	simAndTrkSameDir = dotvtx>0;
+	//
+	recob::Trajectory mctj(positions,momenta,true);
+	const auto mcsmcMu = mcsfittermc.fitMcs(mctj, 13, true);
+	std::cout << "simMom=" << simMom << " mcsmcMu=" << mcsmcMu.fwdMomentum() << std::endl;
+	simMom_MuFwd    = mcsmcMu.fwdMomentum();
+	simMomErr_MuFwd = mcsmcMu.fwdMomUncertainty();
+	simLL_MuFwd     = mcsmcMu.fwdLogLikelihood();
+	simMom_MuBwd    = mcsmcMu.bwdMomentum();
+	simMomErr_MuBwd = mcsmcMu.bwdMomUncertainty();
+	simLL_MuBwd     = mcsmcMu.bwdLogLikelihood();
+	simMom_Mu       = mcsmcMu.bestMomentum();
+	simMomErr_Mu    = mcsmcMu.bestMomUncertainty();
+	simLL_Mu        = mcsmcMu.bestLogLikelihood();
+	simDeltaLL_Mu   = mcsmcMu.deltaLogLikelihood();
+	simIsBestFwd_Mu = mcsmcMu.isBestFwd();
+	//
+	simSegRadLengths = mcsmcMu.segmentRadLengths();
+	//try proper 2d scatt angle //fixme
+	simScattAngles   = mcsmcMu.scatterAngles();
+	simL = lenghts;
+	simE = es;
+	simP = moms;
+	// simPbogus = momsBogus;
+	simRE = res;
+	simRP = rmoms;
+	simRMS = rmss;
+	simRMSR = rmsRs;
+	//
+	std::vector< double > dtheta3d;
+	std::vector< double > dtheta2dxz;
+	std::vector< double > dtheta2dyz;
+	for (unsigned int p = 1; p<startsegdirs.size(); p++) {
+	  auto pcdir0 = startsegdirs[p-1];
+	  auto pcdir1 = startsegdirs[p];
+	  //
+	  const double cosval3d = pcdir0.X()*pcdir1.X()+pcdir0.Y()*pcdir1.Y()+pcdir0.Z()*pcdir1.Z();
+	  // double cosval3d = pcdir0.X()*pcdir1.X()+pcdir0.Z()*pcdir1.Z();
+	  // cosval3d = cosval3d/(sqrt( pcdir0.X()*pcdir0.X() + pcdir0.Z()*pcdir0.Z() )*sqrt( pcdir1.X()*pcdir1.X() + pcdir1.Z()*pcdir1.Z() ) );
+	  //units are mrad
+	  double dt3d = 1000.*acos(cosval3d);//should we try to use expansion for small angles?
+	  // dt3d = (std::abs(pcdir0.Z()-pcdir1.Z())>0 ? dt3d*(pcdir0.Z()-pcdir1.Z())/std::abs(pcdir0.Z()-pcdir1.Z()) : dt3d); //fixme
+	  dtheta3d.push_back(dt3d);
+	  //
+	  // this is the new basis with pcdir along z
+	  auto pcdir0z = pcdir0;
+	  auto pcdir0y = pcdir0.Cross( Vector_t(0,0,1) ).Unit();
+	  auto pcdir0x = pcdir0y.Cross( pcdir0z ).Unit();
+	  //
+	  // now find projections of pcdir1 along the axes of the new basis
+	  auto pcdir1x = pcdir0x.Dot( pcdir1 );
+	  auto pcdir1y = pcdir0y.Dot( pcdir1 );
+	  auto pcdir1z = pcdir0z.Dot( pcdir1 );
+	  //
+	  // compute angles with respect to z axis
+	  dtheta2dxz.push_back(1000.*atan2(pcdir1x,pcdir1z));
+	  dtheta2dyz.push_back(1000.*atan2(pcdir1y,pcdir1z));
+	}
+	simA3d = dtheta3d;
+	simA2dxz = dtheta2dxz;
+	simA2dyz = dtheta2dyz;
+	//
 	break;
       }
     }
