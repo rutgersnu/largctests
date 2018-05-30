@@ -54,7 +54,6 @@ find_ups_product( geant4 v4_9_6 )
 find_ups_product( postgresql v9_1_5 )
 find_ups_product( range )
 find_ups_product( eigen )
-find_ups_product( protobuf )
 find_ups_product( larreco )
 
 # macros for dictionary and simple_plugin

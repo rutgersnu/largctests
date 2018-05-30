@@ -6,20 +6,18 @@ defaultqual	e14
 fcldir product_dir job
 #
 product         version
-larsim		v06_38_01
-eigen		v3_3_3
-nutools         v2_16_09
-tensorflow      v1_3_0a
+larsim		v06_41_01
+larreco		v06_55_01
 
 cetbuildtools	v6_01_00	-	only_for_build
 end_product_list
 
-  
+
 # e14  - with gcc 6.3.0 and -std=c++14
-qualifier     larsim     nutools    eigen	notes
-e14:debug     e14:debug  e14:debug  -nq-
-e14:opt       e14:opt    e14:opt    -nq-
-e14:prof      e14:prof   e14:prof   -nq-
+qualifier     larsim	larreco	notes
+e14:debug     e14:debug	e14:debug
+e14:opt       e14:opt	e14:opt
+e15:prof      e15:prof	e15:prof
 end_qualifier_list
 
 # table fragment workaround for genie cling "error"
