@@ -623,7 +623,7 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 	std::vector< Vector_t > startsegdirs;
 	bool newseg = true;
 	const double thisSegLen = 14.;//(trkLength>(14.*3) ? 14. : trkLength/double(3) );
-	std::cout << "sim track with thisSegLen=" << thisSegLen << std::endl;
+	//std::cout << "sim track with thisSegLen=" << thisSegLen << std::endl;
 	const double m = mcsfittermc.mass(13);
 	//
 	double mclen = 0.;
