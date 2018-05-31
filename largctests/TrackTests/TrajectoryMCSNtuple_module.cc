@@ -148,9 +148,11 @@ private:
   std::vector<double> simScattAngles;
   std::vector<double> simL;
   std::vector<double> simP;
+  std::vector<double> simBeta;
   // std::vector<double> simPbogus;
   std::vector<double> simE;
   std::vector<double> simRP;
+  std::vector<double> simRBeta;
   std::vector<double> simRE;
   std::vector<double> simRMS;
   std::vector<double> simRMSHL;
@@ -269,9 +271,11 @@ void TrajectoryMCSNtuple::resetTree() {
   simL.clear();
   simE.clear();
   simP.clear();
+  simBeta.clear();
   // simPbogus.clear();
   simRE.clear();
   simRP.clear();
+  simRBeta.clear();
   simRMS.clear();
   simRMSHL.clear();
   simRMSR.clear();
@@ -399,9 +403,11 @@ void TrajectoryMCSNtuple::beginJob()
   tree->Branch("simL"  , &simL  );
   tree->Branch("simE"  , &simE  );
   tree->Branch("simP"  , &simP  );
+  tree->Branch("simBeta"  , &simBeta  );
   // tree->Branch("simPbogus"  , &simPbogus  );
   tree->Branch("simRE"  , &simRE  );
   tree->Branch("simRP"  , &simRP  );
+  tree->Branch("simRBeta"  , &simRBeta  );
   tree->Branch("simRMS"  , &simRMS  );
   tree->Branch("simRMSHL"  , &simRMSHL  );
   tree->Branch("simRMSR"  , &simRMSR  );
@@ -613,11 +619,13 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 	double thislen = 0.;
 	std::vector< double > lenghts;
 	std::vector< double > moms;
+	std::vector< double > betas;
 	// std::vector< double > momsBogus;
 	std::vector< double > rmss;
 	std::vector< double > rmsshl;
 	std::vector< double > es;
 	std::vector< double > rmoms;
+	std::vector< double > rbetas;
 	std::vector< double > res;
 	std::vector< double > rmsRs;
 	std::vector< Vector_t > startsegdirs;
@@ -643,11 +651,15 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 	    startsegdirs.push_back(mcdir);
 	    newseg = false;
 	    moms.push_back(mcmom.R());
+	    double beta = sqrt( 1. - ((m*m)/(moms.back()*moms.back() + m*m)) );
+	    betas.push_back(beta);
 	    es.push_back(mctrack[imc].Momentum().E()*0.001);
 	    //
 	    double e = mcsfittermc.GetE(std::sqrt(mcstartmom.R()*mcstartmom.R() - m*m), mclen, m);
 	    double p = std::sqrt(e*e - m*m);
 	    rmoms.push_back(p);
+	    double betaR = sqrt( 1. - ((m*m)/(rmoms.back()*rmoms.back() + m*m)) );
+	    rbetas.push_back(betaR);
 	    res.push_back(e);
 	  }
 	  if (imc<(mctrack.size()-0.5)) {
@@ -671,13 +683,13 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 	    lenghts.push_back(thislen);
 	    //
 	    // momentum is before the segment, but rms needs the actual length so goes here
-	    double beta = sqrt( 1. - ((m*m)/(moms.back()*moms.back() + m*m)) );
+	    double beta = betas.back();
 	    double rms = ( mcsfittermc.MomentumDependentConstant(moms.back()) / (moms.back()*beta) ) * ( 1.0 + 0.038 * std::log( thislen/14. ) ) * sqrt( thislen/14. );
 	    rmss.push_back(rms);
 	    double rmshl = ( 13.6 / (moms.back()*beta) ) * ( 1.0 + 0.038 * std::log( thislen/14. ) ) * sqrt( thislen/14. );
 	    rmsshl.push_back(rmshl);
 	    //
-	    double betaR = sqrt( 1. - ((m*m)/(rmoms.back()*rmoms.back() + m*m)) );
+	    double betaR = rbetas.back();
 	    double rmsR = ( mcsfittermc.MomentumDependentConstant(rmoms.back()) / (rmoms.back()*betaR) ) * ( 1.0 + 0.038 * std::log( thislen/14. ) ) * sqrt( thislen/14. );
 	    rmsRs.push_back(rmsR);
 	    //
@@ -698,7 +710,8 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 	// momsBogus.push_back(simMomEnd);
 	// momsBogus.erase(momsBogus.begin());
 	//
-	simMom = mcstartmom.R();
+        if (positions.size()<2) continue;
+        simMom = mcstartmom.R();
 	simLength = mclen;
 	simStartPosX = mctrack.Start().Position().X();
 	simStartPosY = mctrack.Start().Position().Y();
@@ -735,9 +748,11 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 	simL = lenghts;
 	simE = es;
 	simP = moms;
+	simBeta = betas;
 	// simPbogus = momsBogus;
 	simRE = res;
 	simRP = rmoms;
+	simRBeta = rbetas;
 	simRMS = rmss;
 	simRMSHL = rmsshl;
 	simRMSR = rmsRs;
