@@ -153,10 +153,14 @@ private:
   std::vector<double> simRP;
   std::vector<double> simRE;
   std::vector<double> simRMS;
+  std::vector<double> simRMSHL;
   std::vector<double> simRMSR;
   std::vector<double> simA3d;
   std::vector<double> simA2dxz;
   std::vector<double> simA2dyz;
+  std::vector<double> simAAvg3d;
+  std::vector<double> simAAvg2dxz;
+  std::vector<double> simAAvg2dyz;
   //
   int passSelII;
   //
@@ -269,10 +273,14 @@ void TrajectoryMCSNtuple::resetTree() {
   simRE.clear();
   simRP.clear();
   simRMS.clear();
+  simRMSHL.clear();
   simRMSR.clear();
   simA3d.clear();
   simA2dxz.clear();
   simA2dyz.clear();
+  simAAvg3d.clear();
+  simAAvg2dxz.clear();
+  simAAvg2dyz.clear();
   //
   passSelII = -999;
 }
@@ -395,10 +403,14 @@ void TrajectoryMCSNtuple::beginJob()
   tree->Branch("simRE"  , &simRE  );
   tree->Branch("simRP"  , &simRP  );
   tree->Branch("simRMS"  , &simRMS  );
+  tree->Branch("simRMSHL"  , &simRMSHL  );
   tree->Branch("simRMSR"  , &simRMSR  );
   tree->Branch("simA3d"  , &simA3d  );
   tree->Branch("simA2dxz"  , &simA2dxz  );
   tree->Branch("simA2dyz"  , &simA2dyz  );
+  tree->Branch("simAAvg3d"  , &simAAvg3d  );
+  tree->Branch("simAAvg2dxz"  , &simAAvg2dxz  );
+  tree->Branch("simAAvg2dyz"  , &simAAvg2dyz  );
   //
   tree->Branch("passSelII", &passSelII, "passSelII/I");
   //
@@ -603,13 +615,15 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 	std::vector< double > moms;
 	// std::vector< double > momsBogus;
 	std::vector< double > rmss;
+	std::vector< double > rmsshl;
 	std::vector< double > es;
 	std::vector< double > rmoms;
 	std::vector< double > res;
 	std::vector< double > rmsRs;
 	std::vector< Vector_t > startsegdirs;
 	bool newseg = true;
-	const double thisSegLen = (trkLength>(14.*3) ? 14. : trkLength/double(3) );
+	const double thisSegLen = 14.;//(trkLength>(14.*3) ? 14. : trkLength/double(3) );
+	std::cout << "sim track with thisSegLen=" << thisSegLen << std::endl;
 	const double m = mcsfittermc.mass(13);
 	//
 	double mclen = 0.;
@@ -636,10 +650,10 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 	    rmoms.push_back(p);
 	    res.push_back(e);
 	  }
-	  if (imc<(mctrack.size()-1)) {
-	    if (mctrack[imc].X()<0.    || mctrack[imc].X()>260. ||
-		mctrack[imc].Y()<-115. || mctrack[imc].Y()>115. ||
-		mctrack[imc].Z()<0.    || mctrack[imc].Z()>1040.)
+	  if (imc<(mctrack.size()-0.5)) {
+	    if (mctrack[imc+1].X()<0.    || mctrack[imc+1].X()>260. ||
+		mctrack[imc+1].Y()<-115. || mctrack[imc+1].Y()>115. ||
+		mctrack[imc+1].Z()<0.    || mctrack[imc+1].Z()>1040.)
 	      {
 		//do nothing
 	      } else {
@@ -647,19 +661,21 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 			   (mctrack[imc+1].Y()-mctrack[imc].Y())*(mctrack[imc+1].Y()-mctrack[imc].Y()) +
 			   (mctrack[imc+1].Z()-mctrack[imc].Z())*(mctrack[imc+1].Z()-mctrack[imc].Z()) );
 	      //check segment length along the initial direction //fixme
-	      // thislen += sqrt( (mctrack[imc+1].X()-mctrack[imc].X())*(mctrack[imc+1].X()-mctrack[imc].X()) +
-	      // 		     (mctrack[imc+1].Y()-mctrack[imc].Y())*(mctrack[imc+1].Y()-mctrack[imc].Y()) +
-	      // 		     (mctrack[imc+1].Z()-mctrack[imc].Z())*(mctrack[imc+1].Z()-mctrack[imc].Z()) );
-	      thislen += startsegdirs.back().Dot(Vector_t(mctrack[imc+1].X()-mctrack[imc].X(),mctrack[imc+1].Y()-mctrack[imc].Y(),mctrack[imc+1].Z()-mctrack[imc].Z()));
+	      thislen += sqrt( (mctrack[imc+1].X()-mctrack[imc].X())*(mctrack[imc+1].X()-mctrack[imc].X()) +
+                               (mctrack[imc+1].Y()-mctrack[imc].Y())*(mctrack[imc+1].Y()-mctrack[imc].Y()) +
+                               (mctrack[imc+1].Z()-mctrack[imc].Z())*(mctrack[imc+1].Z()-mctrack[imc].Z()) );
+	      // thislen += startsegdirs.back().Dot(Vector_t(mctrack[imc+1].X()-mctrack[imc].X(),mctrack[imc+1].Y()-mctrack[imc].Y(),mctrack[imc+1].Z()-mctrack[imc].Z()));
 	    }
 	  }
-	  if (thislen>thisSegLen-0.5) {
+	  if (thislen>thisSegLen-1.0) {
 	    lenghts.push_back(thislen);
 	    //
 	    // momentum is before the segment, but rms needs the actual length so goes here
 	    double beta = sqrt( 1. - ((m*m)/(moms.back()*moms.back() + m*m)) );
 	    double rms = ( mcsfittermc.MomentumDependentConstant(moms.back()) / (moms.back()*beta) ) * ( 1.0 + 0.038 * std::log( thislen/14. ) ) * sqrt( thislen/14. );
 	    rmss.push_back(rms);
+	    double rmshl = ( 13.6 / (moms.back()*beta) ) * ( 1.0 + 0.038 * std::log( thislen/14. ) ) * sqrt( thislen/14. );
+	    rmsshl.push_back(rmshl);
 	    //
 	    double betaR = sqrt( 1. - ((m*m)/(rmoms.back()*rmoms.back() + m*m)) );
 	    double rmsR = ( mcsfittermc.MomentumDependentConstant(rmoms.back()) / (rmoms.back()*betaR) ) * ( 1.0 + 0.038 * std::log( thislen/14. ) ) * sqrt( thislen/14. );
@@ -698,7 +714,8 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 	simIsContained = mccontained;
 	simAndTrkSameDir = dotvtx>0;
 	//
-	recob::Trajectory mctj(positions,momenta,true);
+	recob::TrackTrajectory::Flags_t flags(positions.size());
+	const recob::TrackTrajectory mctj(std::move(positions),std::move(momenta),std::move(flags),true);
 	const auto mcsmcMu = mcsfittermc.fitMcs(mctj, 13, true);
 	std::cout << "simMom=" << simMom << " mcsmcMu=" << mcsmcMu.fwdMomentum() << std::endl;
 	simMom_MuFwd    = mcsmcMu.fwdMomentum();
@@ -714,7 +731,6 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 	simIsBestFwd_Mu = mcsmcMu.isBestFwd();
 	//
 	simSegRadLengths = mcsmcMu.segmentRadLengths();
-	//try proper 2d scatt angle //fixme
 	simScattAngles   = mcsmcMu.scatterAngles();
 	simL = lenghts;
 	simE = es;
@@ -723,6 +739,7 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 	simRE = res;
 	simRP = rmoms;
 	simRMS = rmss;
+	simRMSHL = rmsshl;
 	simRMSR = rmsRs;
 	//
 	std::vector< double > dtheta3d;
@@ -733,11 +750,8 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 	  auto pcdir1 = startsegdirs[p];
 	  //
 	  const double cosval3d = pcdir0.X()*pcdir1.X()+pcdir0.Y()*pcdir1.Y()+pcdir0.Z()*pcdir1.Z();
-	  // double cosval3d = pcdir0.X()*pcdir1.X()+pcdir0.Z()*pcdir1.Z();
-	  // cosval3d = cosval3d/(sqrt( pcdir0.X()*pcdir0.X() + pcdir0.Z()*pcdir0.Z() )*sqrt( pcdir1.X()*pcdir1.X() + pcdir1.Z()*pcdir1.Z() ) );
 	  //units are mrad
 	  double dt3d = 1000.*acos(cosval3d);//should we try to use expansion for small angles?
-	  // dt3d = (std::abs(pcdir0.Z()-pcdir1.Z())>0 ? dt3d*(pcdir0.Z()-pcdir1.Z())/std::abs(pcdir0.Z()-pcdir1.Z()) : dt3d); //fixme
 	  dtheta3d.push_back(dt3d);
 	  //
 	  // this is the new basis with pcdir along z
@@ -757,6 +771,46 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 	simA3d = dtheta3d;
 	simA2dxz = dtheta2dxz;
 	simA2dyz = dtheta2dyz;
+	//
+	vector<size_t> breakpoints_mc;
+	vector<double> segradlengths_mc;
+	vector<double> cumseglens_mc;
+	mcsfittermc.breakTrajInSegments(mctj, breakpoints_mc, segradlengths_mc, cumseglens_mc);
+	Vector_t pcdir_mc;
+	std::vector< Vector_t > segdirs_mc;
+	for (unsigned int p = 0; p<segradlengths_mc.size(); p++) {
+	  mcsfittermc.linearRegression(mctj, breakpoints_mc[p], breakpoints_mc[p+1], pcdir_mc);
+	  segdirs_mc.push_back(pcdir_mc);
+	}
+	std::vector< double > dthetaAvg3d;
+	std::vector< double > dthetaAvg2dxz;
+	std::vector< double > dthetaAvg2dyz;
+	for (unsigned int p = 1; p<segdirs_mc.size(); p++) {
+	  auto pcdir_mc0 = segdirs_mc[p-1];
+	  auto pcdir_mc1 = segdirs_mc[p];
+	  //
+	  const double cosval3d = pcdir_mc0.X()*pcdir_mc1.X()+pcdir_mc0.Y()*pcdir_mc1.Y()+pcdir_mc0.Z()*pcdir_mc1.Z();
+	  //units are mrad
+	  double dt3d = 1000.*acos(cosval3d);//should we try to use expansion for small angles?
+	  dthetaAvg3d.push_back(dt3d);
+	  //
+	  // this is the new basis with pcdir_mc along z
+	  auto pcdir_mc0z = pcdir_mc0;
+	  auto pcdir_mc0y = pcdir_mc0.Cross( Vector_t(0,0,1) ).Unit();
+	  auto pcdir_mc0x = pcdir_mc0y.Cross( pcdir_mc0z ).Unit();
+	  //
+	  // now find projections of pcdir_mc1 along the axes of the new basis
+	  auto pcdir_mc1x = pcdir_mc0x.Dot( pcdir_mc1 );
+	  auto pcdir_mc1y = pcdir_mc0y.Dot( pcdir_mc1 );
+	  auto pcdir_mc1z = pcdir_mc0z.Dot( pcdir_mc1 );
+	  //
+	  // compute angles with respect to z axis
+	  dthetaAvg2dxz.push_back(1000.*atan2(pcdir_mc1x,pcdir_mc1z));
+	  dthetaAvg2dyz.push_back(1000.*atan2(pcdir_mc1y,pcdir_mc1z));
+	}
+	simAAvg3d = dthetaAvg3d;
+	simAAvg2dxz = dthetaAvg2dxz;
+	simAAvg2dyz = dthetaAvg2dyz;
 	//
 	break;
       }
