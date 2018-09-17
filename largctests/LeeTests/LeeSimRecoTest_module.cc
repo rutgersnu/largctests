@@ -28,7 +28,7 @@
 #include "lardataobj/RecoBase/Cluster.h"
 
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
-#include "lardata/DetectorInfo/DetectorProperties.h"
+#include "lardataalg/DetectorInfo/DetectorProperties.h"
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
 
@@ -334,11 +334,11 @@ void LeeSimRecoTest::analyze(art::Event const & e)
   nux = mct.GetNeutrino().Lepton().Vx();
   nuy = mct.GetNeutrino().Lepton().Vy();
   nuz = mct.GetNeutrino().Lepton().Vz();
-  auto scecorr = SCE->GetPosOffsets(nux,nuy,nuz);
+  auto scecorr = SCE->GetPosOffsets({nux,nuy,nuz});
   double g4Ticks = detClocks->TPCG4Time2Tick(mct.GetNeutrino().Lepton().T())+theDetector->GetXTicksOffset(0,0,0)-theDetector->TriggerOffset();
-  double xOffset = theDetector->ConvertTicksToX(g4Ticks, 0, 0, 0)-scecorr[0];
-  double yOffset = scecorr[1];
-  double zOffset = scecorr[2];
+  double xOffset = theDetector->ConvertTicksToX(g4Ticks, 0, 0, 0)-scecorr.X();
+  double yOffset = scecorr.Y();
+  double zOffset = scecorr.Z();
   recob::tracking::Point_t mcpos(nux+xOffset,nuy+yOffset,nuz+zOffset);
   scnux = mcpos.X();
   scnuy = mcpos.Y();
