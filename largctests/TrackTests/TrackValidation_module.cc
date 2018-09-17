@@ -31,8 +31,8 @@
 #include "lardata/RecoObjects/PropXYZPlane.h"
 #include "lardata/RecoObjects/SurfXYZPlane.h"
 
+#include "lardataalg/DetectorInfo/DetectorProperties.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
-#include "lardata/DetectorInfo/DetectorProperties.h"
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
 
 #include "lardata/RecoObjects/TrackingPlaneHelper.h"
