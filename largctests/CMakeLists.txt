@@ -1,4 +1,2 @@
 
-add_subdirectory(HitTests)
-add_subdirectory(TrackTests)
-add_subdirectory(VertexTests)
+add_subdirectory(LeeTests)
