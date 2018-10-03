@@ -6,7 +6,7 @@ defaultqual	e17
 fcldir product_dir job
 #
 product         version
-larsim		v07_02_02
+larsim		v07_03_02
 larreco         v06_55_01
 cetbuildtools	v7_00_03	-	only_for_build
 end_product_list
