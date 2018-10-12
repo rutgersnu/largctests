@@ -1,5 +1,6 @@
 #include "services_microboone.fcl"
 #include "time_memory_tracker_microboone.fcl"
+#include "mcsfitproducer.fcl"
 
 #include "tpcneutrinoidfilter_microboone.fcl"
 #include "filters.fcl"
@@ -45,8 +46,12 @@ splittrackntuplizer: {
   inputTracksLabel1st: pandoraNu
   inputTracksLabel2nd: pandoraNu
   doSplitVertices: false
+  mcsfitmu: @local::mcsfitproducer
+  mcsfitp: @local::mcsfitproducer
   SelectEvents: [ filtpro ]
 }
+splittrackntuplizer.mcsfitp.fitter.pIdHypothesis: 2212
+
 
 physics: {
   producers: {

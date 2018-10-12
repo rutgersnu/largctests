@@ -73,6 +73,9 @@ private:
   std::string inputTracksLabel2nd;
   bool doSplitVertices;
   //
+  trkf::TrajectoryMCSFitter mcsFitMu;
+  trkf::TrajectoryMCSFitter mcsFitP;
+  //
   TTree* tree;
   //
   // Event
@@ -454,7 +457,9 @@ SplitTrackNtuplizer::SplitTrackNtuplizer(fhicl::ParameterSet const & p)
   inputTracksLabel(p.get<std::string>("inputTracksLabel")),
   inputTracksLabel1st(p.get<std::string>("inputTracksLabel1st")),
   inputTracksLabel2nd(p.get<std::string>("inputTracksLabel2nd")),
-  doSplitVertices(p.get<bool>("doSplitVertices"))
+  doSplitVertices(p.get<bool>("doSplitVertices")),
+  mcsFitMu(fhicl::Table<trkf::TrajectoryMCSFitter::Config>(p.get<fhicl::ParameterSet>("mcsfitmu"))),
+  mcsFitP(fhicl::Table<trkf::TrajectoryMCSFitter::Config>(p.get<fhicl::ParameterSet>("mcsfitp")))
 {}
 
 void SplitTrackNtuplizer::resetTree() {
@@ -696,8 +701,6 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
     simTracks = e.getValidHandle<std::vector<sim::MCTrack> >(SimTrackInputTag).product();
   }
   //
-  TrajectoryMCSFitter mcsFitMu(13,3,14,2,10,0,0.01,7.50,0.01,3.0);
-  TrajectoryMCSFitter mcsFitP(2212,3,14,2,10,0,0.01,7.50,0.01,3.0);
   TrackMomentumCalculator tmc;
   //
   cout << inputTracksLabel << " " << inputTracksLabel1st << " " << inputTracksLabel2nd << endl;

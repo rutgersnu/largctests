@@ -21,6 +21,7 @@
 
 #include "lardataobj/RecoBase/PFParticle.h"
 #include "lardataobj/RecoBase/Track.h"
+#include "lardataobj/RecoBase/Hit.h"
 #include "lardataobj/RecoBase/MCSFitResult.h"
 #include "lardata/RecoObjects/TrackStatePropagator.h"
 
@@ -51,6 +52,9 @@ public:
   void analyze(art::Event const & e) override;
 
   void beginJob() override;
+
+  const simb::MCParticle* getAssocMCParticle(const std::vector<art::Ptr<recob::Hit> >&,
+					     const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& hittruth);
 
 private:
   //
@@ -252,14 +256,17 @@ void TrackingPerformance::analyze(art::Event const & e)
   detinfo::DetectorClocks const* detClocks = lar::providerFrom<detinfo::DetectorClocksService>();
   auto const* SCE = lar::providerFrom<spacecharge::SpaceChargeService>(); 
   //
-  const auto& inputPFParticle = e.getValidHandle<vector<PFParticle> >("pandoraNu");
+  const auto& inputPFParticle = e.getValidHandle<vector<PFParticle> >("pandora");
   auto assocTracks = unique_ptr<art::FindManyP<Track> >(new art::FindManyP<Track>(inputPFParticle, e, inputTracksLabel));
-  auto const& truth = *e.getValidHandle<art::Assns<PFParticle,simb::MCParticle,anab::BackTrackerMatchingData> >("pandoraNuTruthMatch");
+  const auto& inputTracks = e.getValidHandle<vector<Track> >(inputTracksLabel);
+  auto assocHits = unique_ptr<art::FindManyP<Hit> >(new art::FindManyP<Hit>(inputTracks, e, inputTracksLabel));
+  const auto& inputHits = e.getValidHandle<vector<Hit> >("gaushit");
+  const auto& hittruth = unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >(new art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData>(inputHits,e,"gaushitTruthMatch"));
   //
   auto const& mctruth = *e.getValidHandle<std::vector<simb::MCTruth> >("generator");
   //
-  const auto& mcsmom = *e.getValidHandle<vector<MCSFitResult> >("pandoraNuMCSMu");
-  const std::vector<anab::CosmicTag>* cont = e.getValidHandle<std::vector<anab::CosmicTag> >("pandoraNuContTag").product();
+  const auto& mcsmom = *e.getValidHandle<vector<MCSFitResult> >("pandoraMCSMu");
+  const std::vector<anab::CosmicTag>* cont = e.getValidHandle<std::vector<anab::CosmicTag> >("pandoraContTag").product();
 
   Point_t nuvtx(mctruth[0].GetNeutrino().Nu().Position().X(),mctruth[0].GetNeutrino().Nu().Position().Y(),mctruth[0].GetNeutrino().Nu().Position().Z());
   if (0) std::cout << "nu vtx=" << nuvtx << " with daughters=" << mctruth[0].GetNeutrino().Nu().NumberDaughters() << std::endl;
@@ -292,7 +299,8 @@ void TrackingPerformance::analyze(art::Event const & e)
 	  continue;
 	}
 	//
-	auto mcp = truth[ipfd].second;
+	const simb::MCParticle* mcp = getAssocMCParticle(assocHits->at(t.key()),hittruth);
+	if (mcp==nullptr) continue;
 	dRVtxMC->Fill((nuvtx-Point_t(mcp->Vx(),mcp->Vy(),mcp->Vz())).R());
 	if (0) cout << "MCParticle status=" << mcp->StatusCode() << " Mother=" << mcp->Mother() << " Process=" << mcp->Process() /*<< " MotherPdgCode=" << (mcp->Mother()>=0 ? mctruth[0].GetParticle(mcp->Mother()).PdgCode() : 0)*/ << endl;
 	if ((nuvtx-Point_t(mcp->Vx(),mcp->Vy(),mcp->Vz())).R()>0.5) {
@@ -444,7 +452,28 @@ void TrackingPerformance::analyze(art::Event const & e)
     }
   }
 
-  
+}
+
+const simb::MCParticle* TrackingPerformance::getAssocMCParticle(const std::vector<art::Ptr<recob::Hit> >& hits,
+								const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& hittruth) {
+  //credit: Wes Ketcuhm
+  std::unordered_map<int,double> trkide;
+  double maxe=-1, tote=0;
+  simb::MCParticle const* maxp_me = nullptr; //pointer for the particle match we will calculate
+  for (auto h : hits) {
+    std::vector<art::Ptr<simb::MCParticle> > particle_vec = hittruth->at(h.key());
+    std::vector<anab::BackTrackerHitMatchingData const*> match_vec = hittruth->data(h.key());;
+    //loop over particles
+    for(size_t i_p=0; i_p<particle_vec.size(); ++i_p){
+      trkide[ particle_vec[i_p]->TrackId() ] += match_vec[i_p]->energy; //store energy per track id
+      tote += match_vec[i_p]->energy; //calculate total energy deposited
+      if( trkide[ particle_vec[i_p]->TrackId() ] > maxe ){ //keep track of maximum
+	maxe = trkide[ particle_vec[i_p]->TrackId() ];
+	maxp_me = particle_vec[i_p].get();
+      }
+    }//end loop over particles per hit
+  }
+  return maxp_me;
 }
 
 DEFINE_ART_MODULE(TrackingPerformance)
