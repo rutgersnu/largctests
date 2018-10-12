@@ -54,7 +54,7 @@ public:
   void beginJob() override;
 
   const simb::MCParticle* getAssocMCParticle(const std::vector<art::Ptr<recob::Hit> >&,
-					     const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& hittruth);
+                                             const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& hittruth);
 
 private:
   //
@@ -254,7 +254,7 @@ void TrackingPerformance::analyze(art::Event const & e)
   //
   detinfo::DetectorProperties const* theDetector = lar::providerFrom<detinfo::DetectorPropertiesService>();
   detinfo::DetectorClocks const* detClocks = lar::providerFrom<detinfo::DetectorClocksService>();
-  auto const* SCE = lar::providerFrom<spacecharge::SpaceChargeService>(); 
+  auto const* SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
   //
   const auto& inputPFParticle = e.getValidHandle<vector<PFParticle> >("pandora");
   auto assocTracks = unique_ptr<art::FindManyP<Track> >(new art::FindManyP<Track>(inputPFParticle, e, inputTracksLabel));
@@ -278,7 +278,7 @@ void TrackingPerformance::analyze(art::Event const & e)
   for (size_t iPF = 0; iPF < inputPFParticle->size(); ++iPF) {
     art::Ptr<PFParticle> pfp(inputPFParticle, iPF);
     if (pfp->IsPrimary()==false || pfp->NumDaughters()<2) continue;
-    if (0) std::cout << "pfp#" << iPF << " PdgCode=" << pfp->PdgCode() 
+    if (0) std::cout << "pfp#" << iPF << " PdgCode=" << pfp->PdgCode()
 	      << " IsPrimary=" << pfp->IsPrimary()
 	      << " NumDaughters=" << pfp->NumDaughters()
 	      << std::endl;
@@ -418,7 +418,7 @@ void TrackingPerformance::analyze(art::Event const & e)
 	dux_prop_assoc_rerr->Fill( sqrt(c(3,3))/fabs(prdir.X()) );
 	duy_prop_assoc_rerr->Fill( sqrt(c(4,4))/fabs(prdir.Y()) );
 	duz_prop_assoc_rerr->Fill( sqrt(c(5,5))/fabs(prdir.Z()) );
-	//	
+	//
 	dx_pull_prop_assoc->Fill( (prpos.X()-mcpos.X())/sqrt(c(0,0)) );
 	dy_pull_prop_assoc->Fill( (prpos.Y()-mcpos.Y())/sqrt(c(1,1)) );
 	dz_pull_prop_assoc->Fill( (prpos.Z()-mcpos.Z())/sqrt(c(2,2)) );
@@ -455,8 +455,8 @@ void TrackingPerformance::analyze(art::Event const & e)
 }
 
 const simb::MCParticle* TrackingPerformance::getAssocMCParticle(const std::vector<art::Ptr<recob::Hit> >& hits,
-								const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& hittruth) {
-  //credit: Wes Ketcuhm
+                                                                const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& hittruth) {
+  //credit: Wes Ketchum
   std::unordered_map<int,double> trkide;
   double maxe=-1, tote=0;
   simb::MCParticle const* maxp_me = nullptr; //pointer for the particle match we will calculate
