@@ -30,7 +30,6 @@ art_make(
 			    larreco_RecoAlg_ClusterRecoUtil
 			    larreco_ClusterFinder
 			    ${ROOT_GENVECTOR}
-			    larpandoraobj
          )
 
 install_headers()
