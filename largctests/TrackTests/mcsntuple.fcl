@@ -1,6 +1,6 @@
 #include "services_microboone.fcl"
 #include "time_memory_tracker_microboone.fcl"
-#include "reco_uboone_mcc8.fcl"
+#include "reco_uboone_mcc9_8.fcl"
 #include "mcsfitproducer.fcl"
 
 #include "tpcneutrinoidfilter_microboone.fcl"
@@ -35,78 +35,37 @@ source.inputCommands: [ "keep *_*_*_*", "drop *_opfiltercommon__McRecoStage1" ]
 
 physics: {
   producers: {
-    pandoraCosmicMCSFitMu: {
+    pandoracalo:                      @local::microboone_calodata
+    pandoracali:                      @local::microboone_calibrationdedx
+    pandoracalipid:                   @local::microboone_chi2pid
+    pandoraMCSFitMu2: {
     @table::mcsfitproducer
-    module_label: pandoraCosmicMCSFit
+    module_label: pandoraMCSFitMu2
     inputs: {
-          inputLabel: pandoraCosmic
+          inputLabel: pandora
        }
     }
-    #
-    pandoraNuMCSFitMu: {
+    pandoraMCSFitP2: {
     @table::mcsfitproducer
-    module_label: pandoraNuMCSFit
+    module_label: pandoraMCSFitP2
     inputs: {
-          inputLabel: pandoraNu
-       }
-    }
-    #
-    pandoraNuPMAMCSFitMu: {
-    @table::mcsfitproducer
-    module_label: pandoraNuPMAMCSFit
-    inputs: {
-          inputLabel: pandoraNuPMA
-       }
-    }
-    #
-    pandoraCosmicMCSFitP: {
-    @table::mcsfitproducer
-    module_label: pandoraCosmicMCSFit
-    inputs: {
-          inputLabel: pandoraCosmic
+          inputLabel: pandora
        }
     fitter: {
     	 @table::mcsfitproducer.fitter 
          pIdHypothesis: 2212
         }
     }
-    #
-    pandoraNuMCSFitP: {
-    @table::mcsfitproducer
-    module_label: pandoraNuMCSFit
-    inputs: {
-          inputLabel: pandoraNu
-       }
-    fitter: {
-    	 @table::mcsfitproducer.fitter 
-         pIdHypothesis: 2212
-        }
-    }
-    #
-    pandoraNuPMAMCSFitP: {
-    @table::mcsfitproducer
-    module_label: pandoraNuPMAMCSFit
-    inputs: {
-          inputLabel: pandoraNuPMA
-       }
-    fitter: {
-    	 @table::mcsfitproducer.fitter 
-         pIdHypothesis: 2212
-        }
-    }
-    NuMuCCSelectionII:      @local::microboone_tpcNeutrinoID
   }
-
-  filters:       { tpcneutrinoidfilter : @local::microboone_tpcneutrinoidfilter}
-
-  sel2:          [ NuMuCCSelectionII, tpcneutrinoidfilter ]
 
   analyzers: {
-    trajmcsntupleCosmic: {
+    trajmcsntuple: {
       module_label: TrajectoryMCSNtuple
       module_type:  TrajectoryMCSNtuple
       inputs: {
-      	   inputLabel: pandoraCosmic
+           inputLabel: pandora
+           MuMCSLabel: pandoraMCSMu
+           PMCSLabel: pandoraMCSFitP2
       }
       mcsfitter: {@table::mcsfitproducer.fitter}
       mcsfittermc: {
@@ -114,46 +73,30 @@ physics: {
                     angResol: 0
 		   }
       #SelectEvents: [sel2]
-    } # trajmcsntupleCosmic
-    trajmcsntupleNu: {
+    } # trajmcsntuple
+    trajmcsntuple2: {
       module_label: TrajectoryMCSNtuple
       module_type:  TrajectoryMCSNtuple
       inputs: {
-           inputLabel: pandoraNu
+           inputLabel: pandora
+           MuMCSLabel: pandoraMCSFitMu2
+           PMCSLabel: pandoraMCSFitP2
       }
       mcsfitter: {@table::mcsfitproducer.fitter}
       mcsfittermc: {
                     @table::mcsfitproducer.fitter
                     angResol: 0
 		   }
-      #SelectEvents: [sel2]
-    } # trajmcsntupleNu
-    trajmcsntupleNuPMA: {
-      module_label: TrajectoryMCSNtuple
-      module_type:  TrajectoryMCSNtuple
-      inputs: {
-           inputLabel: pandoraNuPMA
-      }
-      mcsfitter: {@table::mcsfitproducer.fitter}
-      mcsfittermc: {
-                    @table::mcsfitproducer.fitter
-                    angResol: 0
-		   }
-      #SelectEvents: [sel2]
-    } # trajmcsntupleNuPMA
+    } # trajmcsntuple2
   }
 
-#  ana: [ trajmcsntupleCosmic, trajmcsntupleNu ]
-#  pro:  [ pandoraNuMCSFitP, pandoraNuMCSFitMu, pandoraCosmicMCSFitMu, pandoraCosmicMCSFitP ]
-#  ana: [ trajmcsntupleCosmic ]
-#  pro:  [ pandoraCosmicMCSFitMu, pandoraCosmicMCSFitP ]
-  ana: [ trajmcsntupleNu, trajmcsntupleNuPMA ]
-  pro:  [ pandoraNuMCSFitMu, pandoraNuMCSFitP, pandoraNuPMAMCSFitMu, pandoraNuPMAMCSFitP ]
+  ana: [ trajmcsntuple, trajmcsntuple2 ]
+  pro:  [ pandoraMCSFitMu2, pandoraMCSFitP2]
 
   #stream1:  [out1]
 
-  trigger_paths: [ sel2, pro ]
-  end_paths:     [ ana ] #, stream1
+  trigger_paths: [ pro ]
+  end_paths:     [ ana ]
 
 } # physics
 
@@ -162,15 +105,3 @@ services.DetectorPropertiesService.NumberTimeSamples:                  6400
 services.DetectorPropertiesService.ReadOutWindowSize:                  6400
 services.DetectorClocksService.InheritClockConfig:                     false
 services.DetectorClocksService.TriggerOffsetTPC:                       -0.400e3
-
-physics.producers.NuMuCCSelectionII.NuMuCCSelectionIIAlg.Debug: 1
-physics.producers.NuMuCCSelectionII.NuMuCCSelectionIIAlg.BeamMin : 3.3 #
-physics.producers.NuMuCCSelectionII.NuMuCCSelectionIIAlg.BeamMax : 4.9 #
-
-# define the list of LArSoft modules to run through the simulate path
-
-physics.producers.NuMuCCSelectionII.NeutrinoIDAlgName:                         "NuMuCCSelectionIIAlg"
-physics.filters.tpcneutrinoidfilter.VertexModuleLabelVec:                    ["pandoraNu"]
-physics.filters.tpcneutrinoidfilter.VtxTrackAssnModuleLabelVec:              ["NuMuCCSelectionII"]
-physics.filters.tpcneutrinoidfilter.Cluster2DCosmicProducerLabel:            ""
-physics.filters.tpcneutrinoidfilter.Cluster2DCosmicClusterAssns:             ""

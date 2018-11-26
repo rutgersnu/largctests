@@ -1,0 +1,95 @@
+#include "services_microboone.fcl"
+#include "time_memory_tracker_microboone.fcl"
+#include "mcsfitproducer.fcl"
+
+#include "tpcneutrinoidfilter_microboone.fcl"
+#include "filters.fcl"
+
+#include "reco_uboone_mcc9_8_driver_common.fcl"
+
+process_name: SplitToNtuple
+
+services: {
+  TFileService:           { fileName: "splitTrackNtuple_pandoraKalmanTrack.root" }
+  @table::microboone_reco_mcc8_services
+  TimeTracker: { }
+} # services
+services.MemoryPeakReporter: @erase
+
+source: {
+  module_type: RootInput
+  maxEvents:  -1            # number of events to read
+} # source
+
+trackSplit: {
+  module_type: TrackSplitter
+  module_label: trackSplit
+  pfParticleInputTag: "pandora"
+  reverseHits: false
+  hitSubsetMode: 1 #wire even
+  #hitSubsetMode: 2 #wire odd
+  #hitSubsetMode: 3 #first half
+  #hitSubsetMode: 4 #second half
+  #hitSubsetMode: 5 #interleave, 4 parts, use part 0
+  #hitSubsetMode: 6 #interleave, 4 parts, use part 2
+  #hitSubsetMode: 7 #interleave, 6 parts, use part 0,1
+  #hitSubsetMode: 8 #interleave, 6 parts, use part 3,4
+  midPointHalfGap: 10
+  interleaveStep: 15
+  mixMode: true
+}
+
+splittrackntuplizer: {
+  module_type:  SplitTrackNtuplizer
+  module_label: splittrackntuplizer
+  inputTracksLabel: pandora
+  inputTracksLabel1st: pandora
+  inputTracksLabel2nd: pandora
+  doSplitVertices: false
+  mcsfitmu: @local::mcsfitproducer.fitter
+  mcsfitp: @local::mcsfitproducer.fitter
+  #SelectEvents: [ filtpro ]
+}
+splittrackntuplizer.mcsfitp.pIdHypothesis: 2212
+
+
+physics: {
+  producers: {
+    trackSplitHalf1Gap10:  @local::trackSplit
+    trackSplitHalf2Gap10:  @local::trackSplit
+    pandoraKalmanTrackHalf1Gap10: @local::physics.producers.pandoraKalmanTrack
+    pandoraKalmanTrackHalf2Gap10: @local::physics.producers.pandoraKalmanTrack
+  }
+  analyzers: {
+    splitTrackNtuplizerKalmanTrackHalf10:  @local::splittrackntuplizer
+    splitTrackNtuplizerKalmanTrackHalf15:  @local::splittrackntuplizer
+  }
+
+  pro: [ trackSplitHalf1Gap10, trackSplitHalf2Gap10, pandoraKalmanTrackHalf1Gap10, pandoraKalmanTrackHalf2Gap10 ]
+
+  ana:  [ splitTrackNtuplizerKalmanTrackHalf10 ]
+
+  trigger_paths: [ pro ]
+  end_paths:     [ ana ]
+
+} # physics
+
+physics.producers.trackSplitHalf1Gap10.hitSubsetMode: 3
+physics.producers.trackSplitHalf1Gap10.midPointHalfGap: 10
+physics.producers.trackSplitHalf2Gap10.hitSubsetMode: 4
+physics.producers.trackSplitHalf2Gap10.midPointHalfGap: 10
+physics.producers.pandoraKalmanTrackHalf1Gap10.inputCollection: "trackSplitHalf1Gap10"
+physics.producers.pandoraKalmanTrackHalf2Gap10.inputCollection: "trackSplitHalf2Gap10"
+physics.analyzers.splitTrackNtuplizerKalmanTrackHalf10.inputTracksLabel:    pandoraKalmanTrack
+physics.analyzers.splitTrackNtuplizerKalmanTrackHalf10.inputTracksLabel1st: pandoraKalmanTrackHalf1Gap10
+physics.analyzers.splitTrackNtuplizerKalmanTrackHalf10.inputTracksLabel2nd: pandoraKalmanTrackHalf2Gap10
+
+# Adjust the window/offset for the reduced total frame size (9600 -> 6400 ticks)
+services.DetectorPropertiesService.NumberTimeSamples: 6400
+services.DetectorPropertiesService.ReadOutWindowSize: 6400
+services.DetectorClocksService.InheritClockConfig:    false
+services.DetectorClocksService.TriggerOffsetTPC:      -0.400e3
+
+services.SpaceCharge.EnableCorrSCE: true
+services.SpaceCharge.EnableSimEfieldSCE: true
+services.SpaceCharge.EnableSimSpatialSCE: true

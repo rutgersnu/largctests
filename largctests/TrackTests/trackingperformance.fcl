@@ -1,6 +1,6 @@
 #include "services_microboone.fcl"
 #include "time_memory_tracker_microboone.fcl"
-#include "reco_uboone_mcc8.fcl"
+#include "reco_uboone_mcc9_8.fcl"
 #include "trackproducerfrompfparticle.fcl"
 
 process_name: TrackMaker
@@ -35,58 +35,41 @@ outputs:{
    }
 }
 
+trackingperformance: {
+  module_label: TrackingPerformance
+  module_type:  TrackingPerformance
+  inputTracksLabel: pandoraKalmanTrack
+  minHits: 10
+  selectPdgCode: -1
+}
+
 physics: {
   producers: {
      trackproducer: @local::trackproducerfrompfparticle
   }
 
   analyzers: {
-    trackingperformance: {
-      module_label: TrackingPerformance
-      module_type:  TrackingPerformance
-      inputTracksLabel: trackproducer
-      minHits: 10
-      selectPdgCode: -1
-    } # trackingperformance
-    trackingperformanceMu: {
-      module_label: TrackingPerformance
-      module_type:  TrackingPerformance
-      inputTracksLabel: trackproducer
-      minHits: 10
-      selectPdgCode: 13
-    } # trackingperformanceMu
-    trackingperformancePi: {
-      module_label: TrackingPerformance
-      module_type:  TrackingPerformance
-      inputTracksLabel: trackproducer
-      minHits: 10
-      selectPdgCode: 211
-    } # trackingperformancePi
-    trackingperformanceK: {
-      module_label: TrackingPerformance
-      module_type:  TrackingPerformance
-      inputTracksLabel: trackproducer
-      minHits: 10
-      selectPdgCode: 321
-    } # trackingperformanceK
-    trackingperformanceP: {
-      module_label: TrackingPerformance
-      module_type:  TrackingPerformance
-      inputTracksLabel: trackproducer
-      minHits: 10
-      selectPdgCode: 2212
-    } # trackingperformanceP
+    trackingperformance:   @local::trackingperformance
+    trackingperformanceMu: @local::trackingperformance
+    trackingperformancePi: @local::trackingperformance
+    trackingperformanceK:  @local::trackingperformance
+    trackingperformanceP:  @local::trackingperformance
   } # analyzers
 
   ana:  [ trackingperformance, trackingperformanceMu, trackingperformancePi, trackingperformanceK, trackingperformanceP ]
-  pro: [trackproducer]
+  #pro: [trackproducer]
   #stream1: [ out1 ]
 
-  trigger_paths: [ pro ]
+  #trigger_paths: [ pro ]
   #end_paths: [ ana, stream1 ]
   end_paths: [ ana ]
   #end_paths: [ stream1 ]
 }
+
+physics.analyzers.trackingperformanceMu.selectPdgCode: 13
+physics.analyzers.trackingperformancePi.selectPdgCode: 211
+physics.analyzers.trackingperformanceK.selectPdgCode: 321
+physics.analyzers.trackingperformanceP.selectPdgCode: 2212
 
 physics.producers.trackproducer.inputCollection: "pandoraNu"
 physics.producers.trackproducer.trackMaker.options.momFromTagAndPid: true

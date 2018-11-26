@@ -453,7 +453,7 @@ void SplitTrackNtuplizer::beginJob()
 SplitTrackNtuplizer::SplitTrackNtuplizer(fhicl::ParameterSet const & p)
   :
   EDAnalyzer(p),
-  inputPFLabel(p.get<std::string>("inputPFLabel","pandoraNu")),
+  inputPFLabel(p.get<std::string>("inputPFLabel","pandora")),
   inputTracksLabel(p.get<std::string>("inputTracksLabel")),
   inputTracksLabel1st(p.get<std::string>("inputTracksLabel1st")),
   inputTracksLabel2nd(p.get<std::string>("inputTracksLabel2nd")),
@@ -655,14 +655,14 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
   using namespace trkf;
   using namespace recob::tracking;
   //
-  art::ValidHandle<art::TriggerResults> filter = e.getValidHandle<art::TriggerResults>("TriggerResults");
-  size_t ntp =  art::ServiceHandle<art::TriggerNamesService>()->size();
-  size_t ftp = ntp;
-  for (size_t itp=0;itp<ntp;itp++) {
-    //std::cout << art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp) << " " << filter->at(itp).accept()  << std::endl;
-    if (art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp)=="filtpro") ftp = itp; 
-  }
-  assert(ftp<ntp);
+  // art::ValidHandle<art::TriggerResults> filter = e.getValidHandle<art::TriggerResults>("TriggerResults");
+  // size_t ntp =  art::ServiceHandle<art::TriggerNamesService>()->size();
+  // size_t ftp = ntp;
+  // for (size_t itp=0;itp<ntp;itp++) {
+  //   //std::cout << art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp) << " " << filter->at(itp).accept()  << std::endl;
+  //   if (art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp)=="filtpro") ftp = itp; 
+  // }
+  // assert(ftp<ntp);
   //
   detinfo::DetectorProperties const* theDetector = lar::providerFrom<detinfo::DetectorPropertiesService>();
   detinfo::DetectorClocks const* detClocks = lar::providerFrom<detinfo::DetectorClocksService>();
@@ -718,7 +718,7 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
       run = e.run();
       subrun = e.subRun();
       eventid = e.event();
-      passSelII = filter->at(ftp).accept();
+      // passSelII = filter->at(ftp).accept();
       //
       Point_t vertex;
       if (inputPFParticle->at(iPF).IsPrimary()==0) {

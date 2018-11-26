@@ -50,6 +50,14 @@ public:
       Name("inputLabel"),
       Comment("Label of recob::TrackTrajectory Collection to be fit")
      };
+    fhicl::Atom<std::string> MuMCSLabel {
+      Name("MuMCSLabel"),
+      Comment("Label of MCS fit collection with Mu hypothesis")
+     };
+    fhicl::Atom<std::string> PMCSLabel {
+      Name("PMCSLabel"),
+      Comment("Label of MCS fit collection with P hypothesis")
+     };
   };
 
   struct Config {
@@ -87,6 +95,8 @@ public:
 private:
 
   std::string inputTracksLabel;
+  std::string MuMCSLabel;
+  std::string PMCSLabel;
   trkf::TrackMomentumCalculator tmc;
   trkf::TrajectoryMCSFitter mcsfitter;
   trkf::TrajectoryMCSFitter mcsfittermc;
@@ -423,21 +433,27 @@ void TrajectoryMCSNtuple::beginJob()
 }
 
 TrajectoryMCSNtuple::TrajectoryMCSNtuple(Parameters const & p)
-  : EDAnalyzer(p), inputTracksLabel(p().inputs().inputLabel()), mcsfitter(p().mcsfitter), mcsfittermc(p().mcsfittermc) {}
+  : EDAnalyzer(p)
+  , inputTracksLabel(p().inputs().inputLabel())
+  , MuMCSLabel(p().inputs().MuMCSLabel())
+  , PMCSLabel(p().inputs().PMCSLabel())
+  , mcsfitter(p().mcsfitter)
+  , mcsfittermc(p().mcsfittermc)
+{}
 
 TrajectoryMCSNtuple::~TrajectoryMCSNtuple() {}
 
 void TrajectoryMCSNtuple::analyze(art::Event const & e)
 {
 
-  art::ValidHandle<art::TriggerResults> filter = e.getValidHandle<art::TriggerResults>("TriggerResults");
-  size_t ntp =  art::ServiceHandle<art::TriggerNamesService>()->size();
-  size_t ftp = ntp;
-  for (size_t itp=0;itp<ntp;itp++) {
-    //std::cout << art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp) << " " << filter->at(itp).accept()  << std::endl;
-    if (art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp)=="sel2") ftp = itp;
-  }
-  assert(ftp<ntp);
+  // art::ValidHandle<art::TriggerResults> filter = e.getValidHandle<art::TriggerResults>("TriggerResults");
+  // size_t ntp =  art::ServiceHandle<art::TriggerNamesService>()->size();
+  // size_t ftp = ntp;
+  // for (size_t itp=0;itp<ntp;itp++) {
+  //   //std::cout << art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp) << " " << filter->at(itp).accept()  << std::endl;
+  //   if (art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp)=="sel2") ftp = itp;
+  // }
+  // assert(ftp<ntp);
 
   using namespace std;
   using namespace trkf;
@@ -453,13 +469,13 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
   art::InputTag TrackInputTag(inputTracksLabel);
   art::ValidHandle<std::vector<recob::Track> > Tracks = e.getValidHandle<std::vector<recob::Track> >(TrackInputTag);
   //
-  art::InputTag MuMCSInputTag(inputTracksLabel+"MCSFitMu");
+  art::InputTag MuMCSInputTag(MuMCSLabel);
   art::ValidHandle<std::vector<recob::MCSFitResult> > MCSMu = e.getValidHandle<std::vector<recob::MCSFitResult> >(MuMCSInputTag);
   //
-  art::InputTag PMCSInputTag(inputTracksLabel+"MCSFitP");
+  art::InputTag PMCSInputTag(PMCSLabel);
   art::ValidHandle<std::vector<recob::MCSFitResult> > MCSP = e.getValidHandle<std::vector<recob::MCSFitResult> >(PMCSInputTag);
   //
-  art::InputTag PidInputTag(inputTracksLabel+"pid");
+  art::InputTag PidInputTag(inputTracksLabel+"calipid");
   art::FindMany<anab::ParticleID> AssPid(Tracks, e, PidInputTag);
   //
   assert(Tracks->size()==MCSMu->size());
@@ -472,7 +488,7 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
     //
     resetTree();
     //
-    passSelII = filter->at(ftp).accept();
+    // passSelII = filter->at(ftp).accept();
     run = e.run();
     subrun = e.subRun();
     eventid = e.event();

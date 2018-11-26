@@ -266,7 +266,7 @@ void TrackingPerformance::analyze(art::Event const & e)
   auto const& mctruth = *e.getValidHandle<std::vector<simb::MCTruth> >("generator");
   //
   const auto& mcsmom = *e.getValidHandle<vector<MCSFitResult> >("pandoraMCSMu");
-  const std::vector<anab::CosmicTag>* cont = e.getValidHandle<std::vector<anab::CosmicTag> >("pandoraContTag").product();
+  const std::vector<anab::CosmicTag>* cont = e.getValidHandle<std::vector<anab::CosmicTag> >("pandoratag").product();
 
   Point_t nuvtx(mctruth[0].GetNeutrino().Nu().Position().X(),mctruth[0].GetNeutrino().Nu().Position().Y(),mctruth[0].GetNeutrino().Nu().Position().Z());
   if (0) std::cout << "nu vtx=" << nuvtx << " with daughters=" << mctruth[0].GetNeutrino().Nu().NumberDaughters() << std::endl;
@@ -277,7 +277,7 @@ void TrackingPerformance::analyze(art::Event const & e)
 
   for (size_t iPF = 0; iPF < inputPFParticle->size(); ++iPF) {
     art::Ptr<PFParticle> pfp(inputPFParticle, iPF);
-    if (pfp->IsPrimary()==false || pfp->NumDaughters()<2) continue;
+    if (pfp->IsPrimary()==false && pfp->PdgCode()!=12 && pfp->PdgCode()!=14) continue;
     if (0) std::cout << "pfp#" << iPF << " PdgCode=" << pfp->PdgCode()
 	      << " IsPrimary=" << pfp->IsPrimary()
 	      << " NumDaughters=" << pfp->NumDaughters()

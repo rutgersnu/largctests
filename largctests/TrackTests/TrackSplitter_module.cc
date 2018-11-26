@@ -161,7 +161,11 @@ void TrackSplitter::produce(art::Event & e)
       // if track splitting fails make a dummy track with 2 hits, which will fails cuts later on
       // but at least does not break the PFP hierarchy
       //
-      if (positions.size()<2) {
+      int nvalid = 0;
+      for (auto f : flags) {
+	if (f.isPointValid()) nvalid++;
+      }
+      if (nvalid<2) {
 	positions.clear();
 	momenta.clear();
 	flags.clear();
@@ -173,7 +177,7 @@ void TrackSplitter::produce(art::Event & e)
 	  outHits.push_back(hit);
 	  positions.push_back(track.Trajectory().LocationAtPoint(ihit));
 	  momenta.push_back(track.Trajectory().MomentumVectorAtPoint(ihit));
-	  flags.push_back(track.Trajectory().FlagsAtPoint(ihit));
+	  flags.push_back(recob::TrackTrajectory::PointFlags_t());
 	  count++;
 	}
       }
