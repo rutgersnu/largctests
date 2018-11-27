@@ -36,6 +36,7 @@
 #include "lardataobj/AnalysisBase/CosmicTag.h"
 
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
+#include "lardata/Utilities/ForEachAssociatedGroup.h"
 
 #include "TH1.h"
 #include "TH2.h"
@@ -53,8 +54,12 @@ public:
 
   void beginJob() override;
 
-  const simb::MCParticle* getAssocMCParticle(const std::vector<art::Ptr<recob::Hit> >&,
-                                             const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& hittruth);
+  art::Ptr<simb::MCParticle> getAssocMCParticle(const std::vector<art::Ptr<recob::Hit> >&,
+						const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& hittruth) const;
+
+  int nHitsFromMCParticle(size_t mcid,
+			  const std::vector<art::Ptr<recob::Hit> >&,
+			  const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& hittruth) const;
 
 private:
   //
@@ -146,6 +151,9 @@ private:
   TH1F* deltaP_okid;
   TH1F* deltaPrel_okid;
   //
+  TH1F* purity;
+  TH1F* completeness;
+
 };
 
 
@@ -243,6 +251,9 @@ void TrackingPerformance::beginJob()
   ptype_rec_vs_mc = tfs->make<TH2F>("ptype_rec_vs_mc","ptype_rec_vs_mc",6,0,6,6,0,6);
   deltaP_okid  = tfs->make<TH1F>("deltaP_okid","deltaP_okid",50,-1,1);
   deltaPrel_okid  = tfs->make<TH1F>("deltaPrel_okid","deltaPrel_okid",50,-1,1);
+  //
+  purity = tfs->make<TH1F>("purity","purity",21,0,1.05);
+  completeness = tfs->make<TH1F>("completeness","completeness",21,0,1.05);
 }
 
 void TrackingPerformance::analyze(art::Event const & e)
@@ -258,8 +269,8 @@ void TrackingPerformance::analyze(art::Event const & e)
   //
   const auto& inputPFParticle = e.getValidHandle<vector<PFParticle> >("pandora");
   auto assocTracks = unique_ptr<art::FindManyP<Track> >(new art::FindManyP<Track>(inputPFParticle, e, inputTracksLabel));
-  const auto& inputTracks = e.getValidHandle<vector<Track> >(inputTracksLabel);
-  auto assocHits = unique_ptr<art::FindManyP<Hit> >(new art::FindManyP<Hit>(inputTracks, e, inputTracksLabel));
+  art::Assns<recob::Track, recob::Hit> tkHitsAssn = *e.getValidHandle<art::Assns<recob::Track, recob::Hit> >(inputTracksLabel);
+  const auto& trackHitsGroups = util::associated_groups(tkHitsAssn);
   const auto& inputHits = e.getValidHandle<vector<Hit> >("gaushit");
   const auto& hittruth = unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >(new art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData>(inputHits,e,"gaushitTruthMatch"));
   //
@@ -289,18 +300,37 @@ void TrackingPerformance::analyze(art::Event const & e)
       if (0) cout << "pfp id=" << ipfd << " pdg=" << pfpd->PdgCode() << endl;
       for (auto t : pftracks) {
 	//
-	if (selectPdgCode!=-1 && std::abs(t->ParticleId())!=selectPdgCode) {
-	  if (0) cout << "track has not the selected pdgCode but=" << t->ParticleId() << endl;
-	  continue;
-	}
+	// fixme!!!!
+	// if (selectPdgCode!=-1 && std::abs(t->ParticleId())!=selectPdgCode) {
+	//   if (0) cout << "track has not the selected pdgCode but=" << t->ParticleId() << endl;
+	//   continue;
+	// }
 	nHits->Fill(t->CountValidPoints());
 	if (t->CountValidPoints()<minHits) {
 	  if (0) cout << "track has only npoints=" << t->CountValidPoints() << endl;
 	  continue;
 	}
 	//
-	const simb::MCParticle* mcp = getAssocMCParticle(assocHits->at(t.key()),hittruth);
-	if (mcp==nullptr) continue;
+	std::vector<art::Ptr<recob::Hit> > alltrkhits;
+	decltype(auto) hitsRange = util::groupByIndex(trackHitsGroups, t.key());
+	for (art::Ptr<recob::Hit> const& hit: hitsRange) alltrkhits.push_back(hit);
+	std::vector<art::Ptr<recob::Hit> > validtrkhits;
+	for (size_t ih=0;ih<t->NumberTrajectoryPoints();++ih) {
+	  //hits and trajectory points should have the same order (uhm, but findmanyp does not preserve it?)
+	  if (t->HasValidPoint(ih)==0) continue;
+	  validtrkhits.push_back(alltrkhits[ih]);
+	}
+	art::Ptr<simb::MCParticle> mcp = getAssocMCParticle(validtrkhits,hittruth);
+	if (mcp.isNull()) continue;
+	int nFoundMcpHits = nHitsFromMCParticle(mcp.key(),validtrkhits,hittruth);
+	std::vector<art::Ptr<recob::Hit> > gaushits;
+	for (size_t ih=0;ih<inputHits->size();ih++) gaushits.push_back({inputHits,ih});
+	int nTotMcpHits = nHitsFromMCParticle(mcp.key(),gaushits,hittruth);
+	// std::cout << "nValidHits=" << validtrkhits.size() << " nFoundMcpHits=" << nFoundMcpHits << " nTotMcpHits=" << nTotMcpHits
+	// 	  << " completeness=" << float(nFoundMcpHits)/float(nTotMcpHits) << " purity=" << float(nFoundMcpHits)/float(validtrkhits.size()) << std::endl;
+	purity->Fill(float(nFoundMcpHits)/float(validtrkhits.size()));
+	completeness->Fill(float(nFoundMcpHits)/float(nTotMcpHits));
+	//
 	dRVtxMC->Fill((nuvtx-Point_t(mcp->Vx(),mcp->Vy(),mcp->Vz())).R());
 	if (0) cout << "MCParticle status=" << mcp->StatusCode() << " Mother=" << mcp->Mother() << " Process=" << mcp->Process() /*<< " MotherPdgCode=" << (mcp->Mother()>=0 ? mctruth[0].GetParticle(mcp->Mother()).PdgCode() : 0)*/ << endl;
 	if ((nuvtx-Point_t(mcp->Vx(),mcp->Vy(),mcp->Vz())).R()>0.5) {
@@ -454,12 +484,12 @@ void TrackingPerformance::analyze(art::Event const & e)
 
 }
 
-const simb::MCParticle* TrackingPerformance::getAssocMCParticle(const std::vector<art::Ptr<recob::Hit> >& hits,
-                                                                const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& hittruth) {
+art::Ptr<simb::MCParticle> TrackingPerformance::getAssocMCParticle(const std::vector<art::Ptr<recob::Hit> >& hits,
+								   const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& hittruth) const {
   //credit: Wes Ketchum
   std::unordered_map<int,double> trkide;
   double maxe=-1, tote=0;
-  simb::MCParticle const* maxp_me = nullptr; //pointer for the particle match we will calculate
+  art::Ptr<simb::MCParticle> maxp_me; //pointer for the particle match we will calculate
   for (auto h : hits) {
     std::vector<art::Ptr<simb::MCParticle> > particle_vec = hittruth->at(h.key());
     std::vector<anab::BackTrackerHitMatchingData const*> match_vec = hittruth->data(h.key());;
@@ -469,11 +499,29 @@ const simb::MCParticle* TrackingPerformance::getAssocMCParticle(const std::vecto
       tote += match_vec[i_p]->energy; //calculate total energy deposited
       if( trkide[ particle_vec[i_p]->TrackId() ] > maxe ){ //keep track of maximum
 	maxe = trkide[ particle_vec[i_p]->TrackId() ];
-	maxp_me = particle_vec[i_p].get();
+	maxp_me = particle_vec[i_p];
       }
     }//end loop over particles per hit
   }
   return maxp_me;
+}
+
+int TrackingPerformance::nHitsFromMCParticle(size_t mcid,
+					     const std::vector<art::Ptr<recob::Hit> >& hits,
+					     const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& hittruth) const {
+
+  int count = 0;
+  for (auto h : hits) {
+    std::vector<art::Ptr<simb::MCParticle> > particle_vec = hittruth->at(h.key());
+    std::vector<anab::BackTrackerHitMatchingData const*> match_vec = hittruth->data(h.key());;
+    //loop over particles
+    for(size_t i_p=0; i_p<particle_vec.size(); ++i_p){
+      if (match_vec[i_p]->isMaxIDE==0) continue;
+      if (particle_vec[i_p].key()!=mcid) continue;
+      count++;
+    }
+  }
+  return count;
 }
 
 DEFINE_ART_MODULE(TrackingPerformance)

@@ -1,7 +1,6 @@
 #include "services_microboone.fcl"
 #include "time_memory_tracker_microboone.fcl"
 #include "reco_uboone_mcc9_8.fcl"
-#include "trackproducerfrompfparticle.fcl"
 
 process_name: TrackMaker
 
@@ -45,7 +44,7 @@ trackingperformance: {
 
 physics: {
   producers: {
-     trackproducer: @local::trackproducerfrompfparticle
+     trackproducer: @local::microboone_reco_mcc8_producers.pandoraKalmanTrack
   }
 
   analyzers: {
@@ -54,10 +53,24 @@ physics: {
     trackingperformancePi: @local::trackingperformance
     trackingperformanceK:  @local::trackingperformance
     trackingperformanceP:  @local::trackingperformance
+    trackingperformancePandora:   @local::trackingperformance
+    trackingperformancePandoraMu: @local::trackingperformance
+    trackingperformancePandoraPi: @local::trackingperformance
+    trackingperformancePandoraK:  @local::trackingperformance
+    trackingperformancePandoraP:  @local::trackingperformance
+    trackingperformanceProducer:   @local::trackingperformance
+    trackingperformanceProducerMu: @local::trackingperformance
+    trackingperformanceProducerPi: @local::trackingperformance
+    trackingperformanceProducerK:  @local::trackingperformance
+    trackingperformanceProducerP:  @local::trackingperformance
   } # analyzers
 
-  ana:  [ trackingperformance, trackingperformanceMu, trackingperformancePi, trackingperformanceK, trackingperformanceP ]
-  #pro: [trackproducer]
+  #ana:  [ trackingperformancePandoraMu ]
+  #ana:  [ trackingperformance, trackingperformanceMu, trackingperformancePi, trackingperformanceK, trackingperformanceP ]
+  pro: [trackproducer]
+  ana:  [ trackingperformance, trackingperformanceMu, trackingperformanceP,
+          trackingperformancePandora, trackingperformancePandoraMu, trackingperformancePandoraP,
+          trackingperformanceProducer, trackingperformanceProducerMu, trackingperformanceProducerP]
   #stream1: [ out1 ]
 
   #trigger_paths: [ pro ]
@@ -71,16 +84,39 @@ physics.analyzers.trackingperformancePi.selectPdgCode: 211
 physics.analyzers.trackingperformanceK.selectPdgCode: 321
 physics.analyzers.trackingperformanceP.selectPdgCode: 2212
 
-physics.producers.trackproducer.inputCollection: "pandoraNu"
-physics.producers.trackproducer.trackMaker.options.momFromTagAndPid: true
-physics.producers.trackproducer.trackMaker.options.pidInputTag: pandoraNupid
-physics.producers.trackproducer.trackMaker.options.contInputTag: pandoraNuContTag
-physics.producers.trackproducer.trackMaker.options.defaultPdgId: 2212
-#physics.producers.trackproducer.trackMaker.fitter.hitErr2ScaleFact: 0.25
+physics.analyzers.trackingperformancePandoraMu.selectPdgCode: 13
+physics.analyzers.trackingperformancePandoraPi.selectPdgCode: 211
+physics.analyzers.trackingperformancePandoraK.selectPdgCode: 321
+physics.analyzers.trackingperformancePandoraP.selectPdgCode: 2212
+physics.analyzers.trackingperformancePandora.inputTracksLabel: pandora
+physics.analyzers.trackingperformancePandoraMu.inputTracksLabel: pandora
+physics.analyzers.trackingperformancePandoraPi.inputTracksLabel: pandora
+physics.analyzers.trackingperformancePandoraK.inputTracksLabel: pandora
+physics.analyzers.trackingperformancePandoraP.inputTracksLabel: pandora
 
-#physics.producers.trackproducer.inputCollection: "pandoraCosmic"
-#physics.producers.trackproducer.trackMaker.fitter.dumpLevel: 10
+physics.analyzers.trackingperformanceProducerMu.selectPdgCode: 13
+physics.analyzers.trackingperformanceProducerPi.selectPdgCode: 211
+physics.analyzers.trackingperformanceProducerK.selectPdgCode: 321
+physics.analyzers.trackingperformanceProducerP.selectPdgCode: 2212
+physics.analyzers.trackingperformanceProducer.inputTracksLabel: trackproducer
+physics.analyzers.trackingperformanceProducerMu.inputTracksLabel: trackproducer
+physics.analyzers.trackingperformanceProducerPi.inputTracksLabel: trackproducer
+physics.analyzers.trackingperformanceProducerK.inputTracksLabel: trackproducer
+physics.analyzers.trackingperformanceProducerP.inputTracksLabel: trackproducer
+
+#physics.producers.trackproducer.trackMaker.fitter.maxChi2: 50 0.8957/0.6508
+#physics.producers.trackproducer.trackMaker.fitter.maxChi2: 25 0.8993/0.6503
+#physics.producers.trackproducer.trackMaker.fitter.maxChi2: 100 0.8936/0.6466
+#physics.producers.trackproducer.trackMaker.fitter.maxChi2: 75 0.8947/0.6484
+#physics.producers.trackproducer.trackMaker.fitter.maxChi2: -1 0.8908/0.6479
+physics.producers.trackproducer.trackMaker.fitter.skipNegProp: false
+physics.producers.trackproducer.trackMaker.fitter.maxChi2: -1
+physics.producers.trackproducer.trackMaker.fitter.maxDist: -1
+physics.producers.trackproducer.trackMaker.fitter.maxResidue: -1
 
 services.SpaceCharge.EnableCorrSCE: true
 services.SpaceCharge.EnableSimEfieldSCE: true
 services.SpaceCharge.EnableSimSpatialSCE: true
+services.SpaceCharge.RepresentationType: "Voxelized"
+services.SpaceCharge.InputFilename: "SpaceCharge/dispOutput_MicroBooNE_E273.root"
+services.SpaceCharge.CalibrationInputFilename: "SpaceCharge/dispOutput_MicroBooNE_E273.root"
