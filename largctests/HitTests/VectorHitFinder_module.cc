@@ -35,6 +35,8 @@
 #include <iostream>
 #include <fstream>
 
+#include "Event.h"
+
 class VectorHitFinder;
 
 class VectorHitFinder : public art::EDAnalyzer {
@@ -59,34 +61,42 @@ private:
   art::ServiceHandle<geo::Geometry> geom;
   const detinfo::DetectorProperties* detprop;
   std::ofstream outfile;
+  gshf::DataFile data_file;
+  long long int savedEvents = 0;
 };
 
 
 VectorHitFinder::VectorHitFinder(fhicl::ParameterSet const & p)
   :
-  EDAnalyzer(p)  // ,
- // More initializers here.
+  EDAnalyzer(p)
 {
   detprop = art::ServiceHandle<detinfo::DetectorPropertiesService>()->provider();
   outfile.open("hitfinder.txt");
+  data_file.OpenWrite("hitfinder.bin", 1);
 }
 
 VectorHitFinder::~VectorHitFinder()
 {
   outfile.close();
+  data_file.CloseWrite(savedEvents);
+  printf("\nSaved %lli events\n\n",savedEvents);
 }
 
 void VectorHitFinder::analyze(art::Event const & e) {
+
+  gshf::Event EE(e.event());
+  std::vector<gshf::wiredata> &wd_vec_ = EE.wd_vec_;
+  std::vector<gshf::refdata>  &rd_vec_ = EE.rd_vec_;
 
   detinfo::DetectorClocks const* detClocks = lar::providerFrom<detinfo::DetectorClocksService>();
   trkf::TrackStatePropagator prop(1.0, 0.1, 10, 10., 0.01, false);
 
   const auto& mcps = e.getValidHandle<std::vector<simb::MCParticle> >("largeant");
-  std::cout << "nmcp=" << mcps->size() << std::endl;
+  if (0) std::cout << "nmcp=" << mcps->size() << std::endl;
   const simb::MCParticle* m = nullptr;
   for (const auto& mcp : (*mcps)) {
     if (mcp.Mother()!=0) continue;
-    std::cout << "mcp np=" << mcp.NumberTrajectoryPoints()
+    if (0) std::cout << "mcp np=" << mcp.NumberTrajectoryPoints()
 	      << " status=" << mcp.StatusCode()
 	      << " pdg=" << mcp.PdgCode()
 	      << " mother=" << mcp.Mother()
@@ -97,12 +107,13 @@ void VectorHitFinder::analyze(art::Event const & e) {
 
   const auto& mcts = e.getValidHandle<std::vector<sim::MCTrack> >("mcreco");
   for (const auto& mct : (*mcts)) {
-    std::cout << "mct np=" << mct.size()
+    if (0) std::cout << "mct np=" << mct.size()
 	      << " pdg=" << mct.PdgCode()
 	      << std::endl;
   }
   
   auto const& hitsp = proxy::getCollection<std::vector<recob::Hit> >(e,"gaushit",proxy::withAssociated<recob::Wire>(),proxy::withAssociated<raw::RawDigit>(),proxy::withAssociatedMeta<simb::MCParticle,anab::BackTrackerHitMatchingData>(art::InputTag("pandoraNuTruthMatch")));
+  size_t maxwf = 0;
   for (const auto& h : hitsp) {
     double t = h->PeakTime();
     double x = detprop->ConvertTicksToX(t, h->WireID().Plane, h->WireID().TPC, h->WireID().Cryostat);
@@ -118,7 +129,7 @@ void VectorHitFinder::analyze(art::Event const & e) {
     bool foundmcp = false;
     for (const auto& im : mps) {
       const auto& bthmd = im.data();
-      std::cout << "mcp pdg=" << im->PdgCode() << " ideFraction=" << bthmd.ideFraction << " isMaxIDE=" << bthmd.isMaxIDE
+      if (0) std::cout << "mcp pdg=" << im->PdgCode() << " ideFraction=" << bthmd.ideFraction << " isMaxIDE=" << bthmd.isMaxIDE
 		<< " ideNFraction=" << bthmd.ideNFraction << " isMaxIDEN=" << bthmd.isMaxIDEN
 		<< " numElectrons=" << bthmd.numElectrons << " energy=" << bthmd.energy
 		<< std::endl;
@@ -136,18 +147,18 @@ void VectorHitFinder::analyze(art::Event const & e) {
     size_t nonzeroadcs = 0;
     for (size_t t=0;t<sigv.size();++t) {
       if (std::abs(sigv[t])>0) {
-	std::cout << "tick=" << t << " ADC=" << sigv[t] << std::endl;
+	if (0) std::cout << "tick=" << t << " ADC=" << sigv[t] << std::endl;
 	nonzeroadcs++;
       }
     }
     size_t nonzerorawadcs = 0;
     for (size_t t=0;t<radcs.size();++t) {
       if (radcs[t]>0) {
-	std::cout << "tick=" << t << " ADC=" << radcs[t] << std::endl;
+	if (0) std::cout << "tick=" << t << " ADC=" << radcs[t] << std::endl;
 	nonzerorawadcs++;
       }
     }
-    std::cout << "wire view=" << w->View() << " wire=" << w->Channel()
+    if (0) std::cout << "wire view=" << w->View() << " wire=" << w->Channel()
 	      << " nsig=" << w->NSignal() << " nROI=" << w->SignalROI().size() << " nTicks=" << w->Signal().size()
 	      << " nonZeroADCs=" << nonzeroadcs
 	      << " nRawADCs=" << radcs.size() << " nonZeroRaw=" << nonzerorawadcs
@@ -178,8 +189,10 @@ void VectorHitFinder::analyze(art::Event const & e) {
       bool success = true;
       recob::tracking::Point_t px = prop.propagatedPosByDistance(p0,d0, prop.distanceToPlane(success, p0, d0, plane) );
       //
-      if ( plane.direction().Dot(p0-plane.position())*plane.direction().Dot(p1-plane.position())<0. ) {
-	std::cout << "hit view=" << h->View() << " wire=" << h->Channel() << " mult=" << h->Multiplicity() << " nmps=" << nmps
+      auto simtick = detprop->ConvertXToTicks(px.X(),h->WireID().planeID());
+      //
+      if ( plane.direction().Dot(p0-plane.position())*plane.direction().Dot(p1-plane.position())<0. && simtick>=h->StartTick() && simtick<=h->EndTick() ) {
+	if (0) std::cout << "hit view=" << h->View() << " wire=" << h->Channel() << " mult=" << h->Multiplicity() << " nmps=" << nmps
 		  << " simX=" << px.X() << " ticksX=" << detprop->ConvertXToTicks(px.X(),h->WireID().planeID())
 		  << " peakTick=" << h->PeakTime() << " RMS=" << h->RMS() << " sigma=" << h->SigmaPeakTime() << " recX=" << x
 		  << " deltaX=" << x-px.X() << " deltaTicks=" << h->PeakTime()-detprop->ConvertXToTicks(px.X(),h->WireID().planeID())
@@ -187,11 +200,19 @@ void VectorHitFinder::analyze(art::Event const & e) {
 		  << " xOffset0=" << xOffset0
 		  << std::endl;
       outfile << "hit view=" << h->View() << " wire=" << h->Channel() << " mult=" << h->Multiplicity() << " multMC=" << nmps
-	      << " simX=" << px.X() << " simTick=" << detprop->ConvertXToTicks(px.X(),h->WireID().planeID())
+	      << " simX=" << px.X() << " simTick=" << simtick
 	      << " recX=" << x << " recTick=" << h->PeakTime() << " RMS=" << h->RMS() << " sigma=" << h->SigmaPeakTime()
 	      << " startTick=" << h->StartTick() << " endTick=" << h->EndTick()
 	      << " deltaX=" << x-px.X() << " deltaTicks=" << h->PeakTime()-detprop->ConvertXToTicks(px.X(),h->WireID().planeID())
 	      << " nRoiADCs=" << nonzeroadcs << " nHitADCs=" << h->EndTick()-h->StartTick() << " nRawADCs=" << radcs.size();
+      gshf::refdata  rd;
+      rd.simtck = simtick;
+      rd.rectck = h->PeakTime();
+      rd.rms = h->RMS();
+      rd_vec_.push_back(rd);
+      gshf::wiredata wd;
+      wd.vw = h->View();
+      wd.ntck = 0;
       try
 	{
           // ####################################
@@ -200,7 +221,7 @@ void VectorHitFinder::analyze(art::Event const & e) {
           art::ServiceHandle<cheat::BackTrackerService> bt_serv;
           //trackides = bt_serv->HitToTrackIDEs(*h);
           std::vector<double> xyz = bt_serv->HitToXYZ(*h);
-	  std::cout << "from backtracker x=" << xyz[0]+xOffset0 /*<< " y=" << xyz[1] << " z=" << xyz[2]*/ << std::endl;
+	  if (0) std::cout << "from backtracker x=" << xyz[0]+xOffset0 /*<< " y=" << xyz[1] << " z=" << xyz[2]*/ << std::endl;
 	  outfile << " backtrackerX=" << xyz[0]+xOffset0;
 	}
       catch(cet::exception e)
@@ -213,8 +234,15 @@ void VectorHitFinder::analyze(art::Event const & e) {
       for (size_t t=0;t<sigv.size();++t) {
 	if (std::abs(sigv[t])>0) {
 	  outfile << "tick=" << t << " ADC=" << sigv[t] << "\n";
+	  gshf::waveform wf;
+	  wf.tck = t;
+	  wf.adc = sigv[t];
+	  wd.wv.push_back(wf);
+	  wd.ntck++;
 	}
       }
+      wd_vec_.push_back(wd);
+      if (maxwf <= wd.ntck) maxwf = wd.ntck;
       /*
 	std::cout << "\tplane pos=" << plane.position() << " mc p0=" << p0 << " p1=" << p1 << " px=" << px
 	<< " d0=" << d0 << " d1=" << d1
@@ -225,6 +253,7 @@ void VectorHitFinder::analyze(art::Event const & e) {
 	// << " dot=" << plane.direction().Dot(p0-plane.position())*plane.direction().Dot(p1-plane.position())
 	<< std::endl;
       */
+      break;
       }
     }
   }
@@ -239,7 +268,12 @@ void VectorHitFinder::analyze(art::Event const & e) {
   //     if (sigv[t]>0) std::cout << "tick=" << t << " ADC=" << sigv[t] << std::endl;
   //   }
   // }
+
+  std::cout << "writing event with wd_vec.size=" << EE.wd_vec_.size() << " and rd_vec.size=" << EE.rd_vec_.size() << " and mxwf=" << maxwf << std::endl;
+
   
+  EE.write_out(data_file);
+  savedEvents++;
 }
 
 DEFINE_ART_MODULE(VectorHitFinder)

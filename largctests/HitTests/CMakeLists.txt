@@ -1,6 +1,8 @@
 
 include_directories ( $ENV{G4INCLUDE} )
 
+add_library (gshf_Event STATIC Event.cc)
+
 art_make(  
           MODULE_LIBRARIES  larsim_Simulation 
 			    lardataobj_Simulation
@@ -34,6 +36,7 @@ art_make(
 			    larreco_ClusterFinder
 			    ${ROOT_GENVECTOR}
 			    larsim_MCCheater_BackTrackerService_service
+			    gshf_Event
          )
 
 install_headers()
