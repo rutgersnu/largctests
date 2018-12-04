@@ -30,8 +30,8 @@
 #include "lardataobj/RecoBase/TrackingPlane.h"
 #include "lardataobj/RecoBase/TrackFitHitInfo.h"
 
+#include "lardataalg/DetectorInfo/DetectorProperties.h"
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
-#include "lardata/DetectorInfo/DetectorProperties.h"
 #include "lardata/DetectorInfoServices/DetectorClocksService.h"
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
 
@@ -72,6 +72,9 @@ private:
   std::string inputTracksLabel1st;
   std::string inputTracksLabel2nd;
   bool doSplitVertices;
+  //
+  trkf::TrajectoryMCSFitter mcsFitMu;
+  trkf::TrajectoryMCSFitter mcsFitP;
   //
   TTree* tree;
   //
@@ -450,11 +453,13 @@ void SplitTrackNtuplizer::beginJob()
 SplitTrackNtuplizer::SplitTrackNtuplizer(fhicl::ParameterSet const & p)
   :
   EDAnalyzer(p),
-  inputPFLabel(p.get<std::string>("inputPFLabel","pandoraNu")),
+  inputPFLabel(p.get<std::string>("inputPFLabel","pandora")),
   inputTracksLabel(p.get<std::string>("inputTracksLabel")),
   inputTracksLabel1st(p.get<std::string>("inputTracksLabel1st")),
   inputTracksLabel2nd(p.get<std::string>("inputTracksLabel2nd")),
-  doSplitVertices(p.get<bool>("doSplitVertices"))
+  doSplitVertices(p.get<bool>("doSplitVertices")),
+  mcsFitMu(fhicl::Table<trkf::TrajectoryMCSFitter::Config>(p.get<fhicl::ParameterSet>("mcsfitmu"))),
+  mcsFitP(fhicl::Table<trkf::TrajectoryMCSFitter::Config>(p.get<fhicl::ParameterSet>("mcsfitp")))
 {}
 
 void SplitTrackNtuplizer::resetTree() {
@@ -650,14 +655,14 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
   using namespace trkf;
   using namespace recob::tracking;
   //
-  art::ValidHandle<art::TriggerResults> filter = e.getValidHandle<art::TriggerResults>("TriggerResults");
-  size_t ntp =  art::ServiceHandle<art::TriggerNamesService>()->size();
-  size_t ftp = ntp;
-  for (size_t itp=0;itp<ntp;itp++) {
-    //std::cout << art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp) << " " << filter->at(itp).accept()  << std::endl;
-    if (art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp)=="filtpro") ftp = itp; 
-  }
-  assert(ftp<ntp);
+  // art::ValidHandle<art::TriggerResults> filter = e.getValidHandle<art::TriggerResults>("TriggerResults");
+  // size_t ntp =  art::ServiceHandle<art::TriggerNamesService>()->size();
+  // size_t ftp = ntp;
+  // for (size_t itp=0;itp<ntp;itp++) {
+  //   //std::cout << art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp) << " " << filter->at(itp).accept()  << std::endl;
+  //   if (art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp)=="filtpro") ftp = itp; 
+  // }
+  // assert(ftp<ntp);
   //
   detinfo::DetectorProperties const* theDetector = lar::providerFrom<detinfo::DetectorPropertiesService>();
   detinfo::DetectorClocks const* detClocks = lar::providerFrom<detinfo::DetectorClocksService>();
@@ -696,8 +701,6 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
     simTracks = e.getValidHandle<std::vector<sim::MCTrack> >(SimTrackInputTag).product();
   }
   //
-  TrajectoryMCSFitter mcsFitMu(13,3,14,2,10,0,0.01,7.50,0.01,3.0);
-  TrajectoryMCSFitter mcsFitP(2212,3,14,2,10,0,0.01,7.50,0.01,3.0);
   TrackMomentumCalculator tmc;
   //
   cout << inputTracksLabel << " " << inputTracksLabel1st << " " << inputTracksLabel2nd << endl;
@@ -715,7 +718,7 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
       run = e.run();
       subrun = e.subRun();
       eventid = e.event();
-      passSelII = filter->at(ftp).accept();
+      // passSelII = filter->at(ftp).accept();
       //
       Point_t vertex;
       if (inputPFParticle->at(iPF).IsPrimary()==0) {

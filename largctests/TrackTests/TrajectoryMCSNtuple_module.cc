@@ -50,6 +50,14 @@ public:
       Name("inputLabel"),
       Comment("Label of recob::TrackTrajectory Collection to be fit")
      };
+    fhicl::Atom<std::string> MuMCSLabel {
+      Name("MuMCSLabel"),
+      Comment("Label of MCS fit collection with Mu hypothesis")
+     };
+    fhicl::Atom<std::string> PMCSLabel {
+      Name("PMCSLabel"),
+      Comment("Label of MCS fit collection with P hypothesis")
+     };
   };
 
   struct Config {
@@ -59,6 +67,9 @@ public:
     };
     fhicl::Table<trkf::TrajectoryMCSFitter::Config> mcsfitter {
       Name("mcsfitter")
+    };
+    fhicl::Table<trkf::TrajectoryMCSFitter::Config> mcsfittermc {
+      Name("mcsfittermc")
     };
   };
   using Parameters = art::EDAnalyzer::Table<Config>;
@@ -84,55 +95,84 @@ public:
 private:
 
   std::string inputTracksLabel;
+  std::string MuMCSLabel;
+  std::string PMCSLabel;
   trkf::TrackMomentumCalculator tmc;
   trkf::TrajectoryMCSFitter mcsfitter;
+  trkf::TrajectoryMCSFitter mcsfittermc;
   TTree* tree;
   //
   int    run, subrun, eventid;
-  double trkLength;
-  double trkMom_MuFwd, trkMomErr_MuFwd, trkLL_MuFwd;
-  double trkMom_MuBwd, trkMomErr_MuBwd, trkLL_MuBwd;
-  double trkMom_Mu, trkMomErr_Mu, trkLL_Mu;
-  double trkDeltaLL_Mu;
+  float trkLength;
+  float trkMom_MuFwd, trkMomErr_MuFwd, trkLL_MuFwd;
+  float trkMom_MuBwd, trkMomErr_MuBwd, trkLL_MuBwd;
+  float trkMom_Mu, trkMomErr_Mu, trkLL_Mu;
+  float trkDeltaLL_Mu;
   int    trkIsBestFwd_Mu;
-  double trkMom_PFwd, trkMomErr_PFwd, trkLL_PFwd;
-  double trkMom_PBwd, trkMomErr_PBwd, trkLL_PBwd;
-  double trkMom_P, trkMomErr_P, trkLL_P;
-  double trkDeltaLL_P;
+  float trkMom_PFwd, trkMomErr_PFwd, trkLL_PFwd;
+  float trkMom_PBwd, trkMomErr_PBwd, trkLL_PBwd;
+  float trkMom_P, trkMomErr_P, trkLL_P;
+  float trkDeltaLL_P;
   int    trkIsBestFwd_P;
-  std::vector<double> trkSegRadLengths;
-  std::vector<double> trkScattAngles;
+  std::vector<float> trkSegRadLengths;
+  std::vector<float> trkScattAngles;
   //
   int    trkNHits, trkIsContained;
-  double trkMom_RangeMu, trkMom_RangeP;
+  float trkMom_RangeMu, trkMom_RangeP;
   int    trkID_MCSRange;
-  double trkStartPosX, trkStartPosY, trkStartPosZ;
-  double trkStartDirX, trkStartDirY, trkStartDirZ;
-  double trkEndPosX, trkEndPosY, trkEndPosZ;
-  double trkEndDirX, trkEndDirY, trkEndDirZ;
+  float trkStartPosX, trkStartPosY, trkStartPosZ;
+  float trkStartDirX, trkStartDirY, trkStartDirZ;
+  float trkEndPosX, trkEndPosY, trkEndPosZ;
+  float trkEndDirX, trkEndDirY, trkEndDirZ;
   std::vector<int> trkSegNHits;
-  std::vector<double> trkSegStartPosX, trkSegStartPosY, trkSegStartPosZ;
-  std::vector<double> trkSegEndPosX, trkSegEndPosY, trkSegEndPosZ;
-  std::vector<double> trkSegDirX, trkSegDirY, trkSegDirZ;
+  std::vector<float> trkSegStartPosX, trkSegStartPosY, trkSegStartPosZ;
+  std::vector<float> trkSegEndPosX, trkSegEndPosY, trkSegEndPosZ;
+  std::vector<float> trkSegDirX, trkSegDirY, trkSegDirZ;
   //
   int    trkid0;
   int    trkid1;
   int    trkid2;
-  double trkpida0;
-  double trkpida1;
-  double trkpida2;
+  float trkpida0;
+  float trkpida1;
+  float trkpida2;
   //
-  double simMom, simMomEnd;
-  double simLength;
-  double simStartPosX, simStartPosY, simStartPosZ;
-  double simStartDirX, simStartDirY, simStartDirZ;
-  double simEndPosX, simEndPosY, simEndPosZ;
-  double simEndDirX, simEndDirY, simEndDirZ;
-  std::vector<double> simMcStepPosX, simMcStepPosY, simMcStepPosZ;
+  float simMom, simMomEnd;
+  float simLength;
+  float simStartPosX, simStartPosY, simStartPosZ;
+  float simStartDirX, simStartDirY, simStartDirZ;
+  float simEndPosX, simEndPosY, simEndPosZ;
+  float simEndDirX, simEndDirY, simEndDirZ;
+  std::vector<float> simMcStepPosX, simMcStepPosY, simMcStepPosZ;
   int    simID;
   std::string simProc;
   int    simIsContained;
   int    simAndTrkSameDir;
+  //
+  float simMom_MuFwd, simMomErr_MuFwd, simLL_MuFwd;
+  float simMom_MuBwd, simMomErr_MuBwd, simLL_MuBwd;
+  float simMom_Mu, simMomErr_Mu, simLL_Mu;
+  float simDeltaLL_Mu;
+  int    simIsBestFwd_Mu;
+  //
+  std::vector<float> simSegRadLengths;
+  std::vector<float> simScattAngles;
+  std::vector<float> simL;
+  std::vector<float> simP;
+  std::vector<float> simBeta;
+  // std::vector<float> simPbogus;
+  std::vector<float> simE;
+  std::vector<float> simRP;
+  std::vector<float> simRBeta;
+  std::vector<float> simRE;
+  std::vector<float> simRMS;
+  std::vector<float> simRMSHL;
+  std::vector<float> simRMSR;
+  std::vector<float> simA3d;
+  std::vector<float> simA2dxz;
+  std::vector<float> simA2dyz;
+  std::vector<float> simAAvg3d;
+  std::vector<float> simAAvg2dxz;
+  std::vector<float> simAAvg2dyz;
   //
   int passSelII;
   //
@@ -225,6 +265,37 @@ void TrajectoryMCSNtuple::resetTree() {
   simProc = "";
   simIsContained = -999;
   simAndTrkSameDir = -999;
+  simMom_MuFwd = -999;
+  simMomErr_MuFwd = -999;
+  simLL_MuFwd = -999;
+  simMom_MuBwd = -999;
+  simMomErr_MuBwd = -999;
+  simLL_MuBwd = -999;
+  simMom_Mu = -999;
+  simMomErr_Mu = -999;
+  simLL_Mu = -999;
+  simDeltaLL_Mu = -999;
+  simIsBestFwd_Mu = -999;
+  simSegRadLengths.clear();
+  simScattAngles.clear();
+  simL.clear();
+  simE.clear();
+  simP.clear();
+  simBeta.clear();
+  // simPbogus.clear();
+  simRE.clear();
+  simRP.clear();
+  simRBeta.clear();
+  simRMS.clear();
+  simRMSHL.clear();
+  simRMSR.clear();
+  simA3d.clear();
+  simA2dxz.clear();
+  simA2dyz.clear();
+  simAAvg3d.clear();
+  simAAvg2dxz.clear();
+  simAAvg2dyz.clear();
+  //
   passSelII = -999;
 }
 
@@ -238,29 +309,29 @@ void TrajectoryMCSNtuple::beginJob()
   tree->Branch("subrun", &subrun, "subrun/I");
   tree->Branch("eventid", &eventid, "eventid/I");
   //
-  tree->Branch("trkLength", &trkLength, "trkLength/D");
-  tree->Branch("trkMom_MuFwd"   , &trkMom_MuFwd   , "trkMom_MuFwd/D"   );
-  tree->Branch("trkMomErr_MuFwd", &trkMomErr_MuFwd, "trkMomErr_MuFwd/D");
-  tree->Branch("trkLL_MuFwd"    , &trkLL_MuFwd    , "trkLL_MuFwd/D"    );
-  tree->Branch("trkMom_MuBwd"   , &trkMom_MuBwd   , "trkMom_MuBwd/D"   );
-  tree->Branch("trkMomErr_MuBwd", &trkMomErr_MuBwd, "trkMomErr_MuBwd/D");
-  tree->Branch("trkLL_MuBwd"    , &trkLL_MuBwd    , "trkLL_MuBwd/D"    );
-  tree->Branch("trkMom_Mu"      , &trkMom_Mu      , "trkMom_Mu/D"      );
-  tree->Branch("trkMomErr_Mu"   , &trkMomErr_Mu   , "trkMomErr_Mu/D"   );
-  tree->Branch("trkLL_Mu"       , &trkLL_Mu       , "trkLL_Mu/D"       );
-  tree->Branch("trkDeltaLL_Mu"  , &trkDeltaLL_Mu  , "trkDeltaLL_Mu/D"  );
+  tree->Branch("trkLength", &trkLength, "trkLength/F");
+  tree->Branch("trkMom_MuFwd"   , &trkMom_MuFwd   , "trkMom_MuFwd/F"   );
+  tree->Branch("trkMomErr_MuFwd", &trkMomErr_MuFwd, "trkMomErr_MuFwd/F");
+  tree->Branch("trkLL_MuFwd"    , &trkLL_MuFwd    , "trkLL_MuFwd/F"    );
+  tree->Branch("trkMom_MuBwd"   , &trkMom_MuBwd   , "trkMom_MuBwd/F"   );
+  tree->Branch("trkMomErr_MuBwd", &trkMomErr_MuBwd, "trkMomErr_MuBwd/F");
+  tree->Branch("trkLL_MuBwd"    , &trkLL_MuBwd    , "trkLL_MuBwd/F"    );
+  tree->Branch("trkMom_Mu"      , &trkMom_Mu      , "trkMom_Mu/F"      );
+  tree->Branch("trkMomErr_Mu"   , &trkMomErr_Mu   , "trkMomErr_Mu/F"   );
+  tree->Branch("trkLL_Mu"       , &trkLL_Mu       , "trkLL_Mu/F"       );
+  tree->Branch("trkDeltaLL_Mu"  , &trkDeltaLL_Mu  , "trkDeltaLL_Mu/F"  );
   tree->Branch("trkIsBestFwd_Mu", &trkIsBestFwd_Mu, "trkIsBestFwd_Mu/I");
   //
-  tree->Branch("trkMom_PFwd"   , &trkMom_PFwd   , "trkMom_PFwd/D"   );
-  tree->Branch("trkMomErr_PFwd", &trkMomErr_PFwd, "trkMomErr_PFwd/D");
-  tree->Branch("trkLL_PFwd"    , &trkLL_PFwd    , "trkLL_PFwd/D"    );
-  tree->Branch("trkMom_PBwd"   , &trkMom_PBwd   , "trkMom_PBwd/D"   );
-  tree->Branch("trkMomErr_PBwd", &trkMomErr_PBwd, "trkMomErr_PBwd/D");
-  tree->Branch("trkLL_PBwd"    , &trkLL_PBwd    , "trkLL_PBwd/D"    );
-  tree->Branch("trkMom_P"      , &trkMom_P      , "trkMom_P/D"      );
-  tree->Branch("trkMomErr_P"   , &trkMomErr_P   , "trkMomErr_P/D"   );
-  tree->Branch("trkLL_P"       , &trkLL_P       , "trkLL_P/D"       );
-  tree->Branch("trkDeltaLL_P"  , &trkDeltaLL_P  , "trkDeltaLL_P/D"  );
+  tree->Branch("trkMom_PFwd"   , &trkMom_PFwd   , "trkMom_PFwd/F"   );
+  tree->Branch("trkMomErr_PFwd", &trkMomErr_PFwd, "trkMomErr_PFwd/F");
+  tree->Branch("trkLL_PFwd"    , &trkLL_PFwd    , "trkLL_PFwd/F"    );
+  tree->Branch("trkMom_PBwd"   , &trkMom_PBwd   , "trkMom_PBwd/F"   );
+  tree->Branch("trkMomErr_PBwd", &trkMomErr_PBwd, "trkMomErr_PBwd/F");
+  tree->Branch("trkLL_PBwd"    , &trkLL_PBwd    , "trkLL_PBwd/F"    );
+  tree->Branch("trkMom_P"      , &trkMom_P      , "trkMom_P/F"      );
+  tree->Branch("trkMomErr_P"   , &trkMomErr_P   , "trkMomErr_P/F"   );
+  tree->Branch("trkLL_P"       , &trkLL_P       , "trkLL_P/F"       );
+  tree->Branch("trkDeltaLL_P"  , &trkDeltaLL_P  , "trkDeltaLL_P/F"  );
   tree->Branch("trkIsBestFwd_P", &trkIsBestFwd_P, "trkIsBestFwd_P/I");
   //
   tree->Branch("trkSegRadLengths", &trkSegRadLengths);
@@ -268,21 +339,21 @@ void TrajectoryMCSNtuple::beginJob()
   //
   tree->Branch("trkNHits", &trkNHits, "trkNHits/I");
   tree->Branch("trkIsContained", &trkIsContained, "trkIsContained/I");
-  tree->Branch("trkMom_RangeMu", &trkMom_RangeMu, "trkMom_RangeMu/D");
-  tree->Branch("trkMom_RangeP" , &trkMom_RangeP , "trkMom_RangeP/D" );
+  tree->Branch("trkMom_RangeMu", &trkMom_RangeMu, "trkMom_RangeMu/F");
+  tree->Branch("trkMom_RangeP" , &trkMom_RangeP , "trkMom_RangeP/F" );
   tree->Branch("trkID_MCSRange", &trkID_MCSRange, "trkID_MCSRange/I");
-  tree->Branch("trkStartPosX", &trkStartPosX, "trkStartPosX/D");
-  tree->Branch("trkStartPosY", &trkStartPosY, "trkStartPosY/D");
-  tree->Branch("trkStartPosZ", &trkStartPosZ, "trkStartPosZ/D");
-  tree->Branch("trkStartDirX", &trkStartDirX, "trkStartDirX/D");
-  tree->Branch("trkStartDirY", &trkStartDirY, "trkStartDirY/D");
-  tree->Branch("trkStartDirZ", &trkStartDirZ, "trkStartDirZ/D");
-  tree->Branch("trkEndPosX"  , &trkEndPosX  , "trkEndPosX/D"  );
-  tree->Branch("trkEndPosY"  , &trkEndPosY  , "trkEndPosY/D"  );
-  tree->Branch("trkEndPosZ"  , &trkEndPosZ  , "trkEndPosZ/D"  );
-  tree->Branch("trkEndDirX"  , &trkEndDirX  , "trkEndDirX/D"  );
-  tree->Branch("trkEndDirY"  , &trkEndDirY  , "trkEndDirY/D"  );
-  tree->Branch("trkEndDirZ"  , &trkEndDirZ  , "trkEndDirZ/D"  );
+  tree->Branch("trkStartPosX", &trkStartPosX, "trkStartPosX/F");
+  tree->Branch("trkStartPosY", &trkStartPosY, "trkStartPosY/F");
+  tree->Branch("trkStartPosZ", &trkStartPosZ, "trkStartPosZ/F");
+  tree->Branch("trkStartDirX", &trkStartDirX, "trkStartDirX/F");
+  tree->Branch("trkStartDirY", &trkStartDirY, "trkStartDirY/F");
+  tree->Branch("trkStartDirZ", &trkStartDirZ, "trkStartDirZ/F");
+  tree->Branch("trkEndPosX"  , &trkEndPosX  , "trkEndPosX/F"  );
+  tree->Branch("trkEndPosY"  , &trkEndPosY  , "trkEndPosY/F"  );
+  tree->Branch("trkEndPosZ"  , &trkEndPosZ  , "trkEndPosZ/F"  );
+  tree->Branch("trkEndDirX"  , &trkEndDirX  , "trkEndDirX/F"  );
+  tree->Branch("trkEndDirY"  , &trkEndDirY  , "trkEndDirY/F"  );
+  tree->Branch("trkEndDirZ"  , &trkEndDirZ  , "trkEndDirZ/F"  );
   //
   tree->Branch("trkSegNHits"    , &trkSegNHits    );
   tree->Branch("trkSegStartPosX", &trkSegStartPosX);
@@ -298,25 +369,25 @@ void TrajectoryMCSNtuple::beginJob()
   tree->Branch("trkid0"  , &trkid0  , "trkid0/I"  );
   tree->Branch("trkid1"  , &trkid1  , "trkid1/I"  );
   tree->Branch("trkid2"  , &trkid2  , "trkid2/I"  );
-  tree->Branch("trkpida0", &trkpida0, "trkpida0/D");
-  tree->Branch("trkpida1", &trkpida1, "trkpida1/D");
-  tree->Branch("trkpida2", &trkpida2, "trkpida2/D");
+  tree->Branch("trkpida0", &trkpida0, "trkpida0/F");
+  tree->Branch("trkpida1", &trkpida1, "trkpida1/F");
+  tree->Branch("trkpida2", &trkpida2, "trkpida2/F");
   //
-  tree->Branch("simMom"   , &simMom   , "simMom/D"   );
-  tree->Branch("simMomEnd", &simMomEnd, "simMomEnd/D"   );
-  tree->Branch("simLength", &simLength, "simLength/D");
-  tree->Branch("simStartPosX", &simStartPosX, "simStartPosX/D");
-  tree->Branch("simStartPosY", &simStartPosY, "simStartPosY/D");
-  tree->Branch("simStartPosZ", &simStartPosZ, "simStartPosZ/D");
-  tree->Branch("simStartDirX", &simStartDirX, "simStartDirX/D");
-  tree->Branch("simStartDirY", &simStartDirY, "simStartDirY/D");
-  tree->Branch("simStartDirZ", &simStartDirZ, "simStartDirZ/D");
-  tree->Branch("simEndPosX"  , &simEndPosX  , "simEndPosX/D"  );
-  tree->Branch("simEndPosY"  , &simEndPosY  , "simEndPosY/D"  );
-  tree->Branch("simEndPosZ"  , &simEndPosZ  , "simEndPosZ/D"  );
-  tree->Branch("simEndDirX"  , &simEndDirX  , "simEndDirX/D"  );
-  tree->Branch("simEndDirY"  , &simEndDirY  , "simEndDirY/D"  );
-  tree->Branch("simEndDirZ"  , &simEndDirZ  , "simEndDirZ/D"  );
+  tree->Branch("simMom"   , &simMom   , "simMom/F"   );
+  tree->Branch("simMomEnd", &simMomEnd, "simMomEnd/F"   );
+  tree->Branch("simLength", &simLength, "simLength/F");
+  tree->Branch("simStartPosX", &simStartPosX, "simStartPosX/F");
+  tree->Branch("simStartPosY", &simStartPosY, "simStartPosY/F");
+  tree->Branch("simStartPosZ", &simStartPosZ, "simStartPosZ/F");
+  tree->Branch("simStartDirX", &simStartDirX, "simStartDirX/F");
+  tree->Branch("simStartDirY", &simStartDirY, "simStartDirY/F");
+  tree->Branch("simStartDirZ", &simStartDirZ, "simStartDirZ/F");
+  tree->Branch("simEndPosX"  , &simEndPosX  , "simEndPosX/F"  );
+  tree->Branch("simEndPosY"  , &simEndPosY  , "simEndPosY/F"  );
+  tree->Branch("simEndPosZ"  , &simEndPosZ  , "simEndPosZ/F"  );
+  tree->Branch("simEndDirX"  , &simEndDirX  , "simEndDirX/F"  );
+  tree->Branch("simEndDirY"  , &simEndDirY  , "simEndDirY/F"  );
+  tree->Branch("simEndDirZ"  , &simEndDirZ  , "simEndDirZ/F"  );
   tree->Branch("simMcStepPosX"  , &simMcStepPosX  );
   tree->Branch("simMcStepPosY"  , &simMcStepPosY  );
   tree->Branch("simMcStepPosZ"  , &simMcStepPosZ  );
@@ -324,26 +395,65 @@ void TrajectoryMCSNtuple::beginJob()
   tree->Branch("simProc", &simProc);
   tree->Branch("simIsContained", &simIsContained, "simIsContained/I");
   tree->Branch("simAndTrkSameDir", &simAndTrkSameDir, "simAndTrkSameDir/I");
+  //
+  tree->Branch("simMom_MuFwd"   , &simMom_MuFwd   , "simMom_MuFwd/F"   );
+  tree->Branch("simMomErr_MuFwd", &simMomErr_MuFwd, "simMomErr_MuFwd/F");
+  tree->Branch("simLL_MuFwd"    , &simLL_MuFwd    , "simLL_MuFwd/F"    );
+  tree->Branch("simMom_MuBwd"   , &simMom_MuBwd   , "simMom_MuBwd/F"   );
+  tree->Branch("simMomErr_MuBwd", &simMomErr_MuBwd, "simMomErr_MuBwd/F");
+  tree->Branch("simLL_MuBwd"    , &simLL_MuBwd    , "simLL_MuBwd/F"    );
+  tree->Branch("simMom_Mu"      , &simMom_Mu      , "simMom_Mu/F"      );
+  tree->Branch("simMomErr_Mu"   , &simMomErr_Mu   , "simMomErr_Mu/F"   );
+  tree->Branch("simLL_Mu"       , &simLL_Mu       , "simLL_Mu/F"       );
+  tree->Branch("simDeltaLL_Mu"  , &simDeltaLL_Mu  , "simDeltaLL_Mu/F"  );
+  tree->Branch("simIsBestFwd_Mu", &simIsBestFwd_Mu, "simIsBestFwd_Mu/I");
+  //
+  tree->Branch("simSegRadLengths", &simSegRadLengths);
+  tree->Branch("simScattAngles"  , &simScattAngles  );
+  tree->Branch("simL"  , &simL  );
+  tree->Branch("simE"  , &simE  );
+  tree->Branch("simP"  , &simP  );
+  tree->Branch("simBeta"  , &simBeta  );
+  // tree->Branch("simPbogus"  , &simPbogus  );
+  tree->Branch("simRE"  , &simRE  );
+  tree->Branch("simRP"  , &simRP  );
+  tree->Branch("simRBeta"  , &simRBeta  );
+  tree->Branch("simRMS"  , &simRMS  );
+  tree->Branch("simRMSHL"  , &simRMSHL  );
+  tree->Branch("simRMSR"  , &simRMSR  );
+  tree->Branch("simA3d"  , &simA3d  );
+  tree->Branch("simA2dxz"  , &simA2dxz  );
+  tree->Branch("simA2dyz"  , &simA2dyz  );
+  tree->Branch("simAAvg3d"  , &simAAvg3d  );
+  tree->Branch("simAAvg2dxz"  , &simAAvg2dxz  );
+  tree->Branch("simAAvg2dyz"  , &simAAvg2dyz  );
+  //
   tree->Branch("passSelII", &passSelII, "passSelII/I");
   //
 }
 
 TrajectoryMCSNtuple::TrajectoryMCSNtuple(Parameters const & p)
-  : EDAnalyzer(p), inputTracksLabel(p().inputs().inputLabel()), mcsfitter(p().mcsfitter) {}
+  : EDAnalyzer(p)
+  , inputTracksLabel(p().inputs().inputLabel())
+  , MuMCSLabel(p().inputs().MuMCSLabel())
+  , PMCSLabel(p().inputs().PMCSLabel())
+  , mcsfitter(p().mcsfitter)
+  , mcsfittermc(p().mcsfittermc)
+{}
 
 TrajectoryMCSNtuple::~TrajectoryMCSNtuple() {}
 
 void TrajectoryMCSNtuple::analyze(art::Event const & e)
 {
 
-  art::ValidHandle<art::TriggerResults> filter = e.getValidHandle<art::TriggerResults>("TriggerResults");
-  size_t ntp =  art::ServiceHandle<art::TriggerNamesService>()->size();
-  size_t ftp = ntp;
-  for (size_t itp=0;itp<ntp;itp++) {
-    //std::cout << art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp) << " " << filter->at(itp).accept()  << std::endl;
-    if (art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp)=="sel2") ftp = itp;
-  }
-  assert(ftp<ntp);
+  // art::ValidHandle<art::TriggerResults> filter = e.getValidHandle<art::TriggerResults>("TriggerResults");
+  // size_t ntp =  art::ServiceHandle<art::TriggerNamesService>()->size();
+  // size_t ftp = ntp;
+  // for (size_t itp=0;itp<ntp;itp++) {
+  //   //std::cout << art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp) << " " << filter->at(itp).accept()  << std::endl;
+  //   if (art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp)=="sel2") ftp = itp;
+  // }
+  // assert(ftp<ntp);
 
   using namespace std;
   using namespace trkf;
@@ -359,13 +469,13 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
   art::InputTag TrackInputTag(inputTracksLabel);
   art::ValidHandle<std::vector<recob::Track> > Tracks = e.getValidHandle<std::vector<recob::Track> >(TrackInputTag);
   //
-  art::InputTag MuMCSInputTag(inputTracksLabel+"MCSFitMu");
+  art::InputTag MuMCSInputTag(MuMCSLabel);
   art::ValidHandle<std::vector<recob::MCSFitResult> > MCSMu = e.getValidHandle<std::vector<recob::MCSFitResult> >(MuMCSInputTag);
   //
-  art::InputTag PMCSInputTag(inputTracksLabel+"MCSFitP");
+  art::InputTag PMCSInputTag(PMCSLabel);
   art::ValidHandle<std::vector<recob::MCSFitResult> > MCSP = e.getValidHandle<std::vector<recob::MCSFitResult> >(PMCSInputTag);
   //
-  art::InputTag PidInputTag(inputTracksLabel+"pid");
+  art::InputTag PidInputTag(inputTracksLabel+"calipid");
   art::FindMany<anab::ParticleID> AssPid(Tracks, e, PidInputTag);
   //
   assert(Tracks->size()==MCSMu->size());
@@ -378,7 +488,7 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
     //
     resetTree();
     //
-    passSelII = filter->at(ftp).accept();
+    // passSelII = filter->at(ftp).accept();
     run = e.run();
     subrun = e.subRun();
     eventid = e.event();
@@ -435,20 +545,20 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
     trkEndDirY = track.EndDirection().Y();
     trkEndDirZ = track.EndDirection().Z();
     vector<size_t> breakpoints;
-    vector<double> segradlengths;
-    vector<double> cumseglens;
+    vector<float> segradlengths;
+    vector<float> cumseglens;
     mcsfitter.breakTrajInSegments(track.Trajectory(), breakpoints, segradlengths, cumseglens);
     //
     std::vector<int>    trkSegNHitsTmp;
-    std::vector<double> trkSegStartPosXtmp;
-    std::vector<double> trkSegStartPosYtmp;
-    std::vector<double> trkSegStartPosZtmp;
-    std::vector<double> trkSegEndPosXtmp;
-    std::vector<double> trkSegEndPosYtmp;
-    std::vector<double> trkSegEndPosZtmp;
-    std::vector<double> trkSegDirXtmp;
-    std::vector<double> trkSegDirYtmp;
-    std::vector<double> trkSegDirZtmp;
+    std::vector<float> trkSegStartPosXtmp;
+    std::vector<float> trkSegStartPosYtmp;
+    std::vector<float> trkSegStartPosZtmp;
+    std::vector<float> trkSegEndPosXtmp;
+    std::vector<float> trkSegEndPosYtmp;
+    std::vector<float> trkSegEndPosZtmp;
+    std::vector<float> trkSegDirXtmp;
+    std::vector<float> trkSegDirYtmp;
+    std::vector<float> trkSegDirZtmp;
     Vector_t pcdir;
     for (unsigned int p = 0; p<segradlengths.size(); p++) {
       mcsfitter.linearRegression(track.Trajectory(), breakpoints[p], breakpoints[p+1], pcdir);
@@ -498,14 +608,14 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
       for (unsigned int iMC = 0; iMC < (*simTracks)->size(); ++iMC) {
 	const sim::MCTrack& mctrack = (*simTracks)->at(iMC);
 	//
-	std::vector<double> simMcStepPosXtmp;
-	std::vector<double> simMcStepPosYtmp;
-	std::vector<double> simMcStepPosZtmp;
+	std::vector<float> simMcStepPosXtmp;
+	std::vector<float> simMcStepPosYtmp;
+	std::vector<float> simMcStepPosZtmp;
 	//
 	Vector_t mcstartmom(mctrack.Start().Momentum().X()*0.001,mctrack.Start().Momentum().Y()*0.001,mctrack.Start().Momentum().Z()*0.001);
 	Vector_t mcstartdir = mcstartmom.Unit();
-	double dotvtx = track.VertexDirection().X()*mcstartdir.X()+track.VertexDirection().Y()*mcstartdir.Y()+track.VertexDirection().Z()*mcstartdir.Z();
-	double dotend = track.EndDirection().X()*mcstartdir.X()+track.EndDirection().Y()*mcstartdir.Y()+track.EndDirection().Z()*mcstartdir.Z();
+	float dotvtx = track.VertexDirection().X()*mcstartdir.X()+track.VertexDirection().Y()*mcstartdir.Y()+track.VertexDirection().Z()*mcstartdir.Z();
+	float dotend = track.EndDirection().X()*mcstartdir.X()+track.EndDirection().Y()*mcstartdir.Y()+track.EndDirection().Z()*mcstartdir.Z();
 	//
 	Point_t mcstart(mctrack.Start().Position().X(),mctrack.Start().Position().Y(),mctrack.Start().Position().Z());
 	Point_t mcend(mctrack.End().Position().X(),mctrack.End().Position().Y(),mctrack.End().Position().Z());
@@ -519,7 +629,28 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 			    mctrack.Start().Position().Y()>-85. && mctrack.Start().Position().Y()<85.   && mctrack.End().Position().Y()>-85. && mctrack.End().Position().Y()<85.  &&
 			    mctrack.Start().Position().Z()>30.  && mctrack.Start().Position().Z()<1010. && mctrack.End().Position().Z()>30.  && mctrack.End().Position().Z()<1010.);
 	//
-	double mclen = 0.;
+	std::vector< Point_t > positions;
+	std::vector< Vector_t > momenta;
+	//
+	float thislen = 0.;
+	std::vector< float > lenghts;
+	std::vector< float > moms;
+	std::vector< float > betas;
+	// std::vector< float > momsBogus;
+	std::vector< float > rmss;
+	std::vector< float > rmsshl;
+	std::vector< float > es;
+	std::vector< float > rmoms;
+	std::vector< float > rbetas;
+	std::vector< float > res;
+	std::vector< float > rmsRs;
+	std::vector< Vector_t > startsegdirs;
+	bool newseg = true;
+	const float thisSegLen = 14.;//(trkLength>(14.*3) ? 14. : trkLength/float(3) );
+	//std::cout << "sim track with thisSegLen=" << thisSegLen << std::endl;
+	const float m = mcsfittermc.mass(13);
+	//
+	float mclen = 0.;
 	for (unsigned int imc=0; imc<mctrack.size(); ++imc) {
 	  if (mctrack[imc].X()<0.    || mctrack[imc].X()>260. ) continue;
 	  if (mctrack[imc].Y()<-115. || mctrack[imc].Y()>115. ) continue;
@@ -527,23 +658,76 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 	  simMcStepPosXtmp.push_back( mctrack[imc].X() );
 	  simMcStepPosYtmp.push_back( mctrack[imc].Y() );
 	  simMcStepPosZtmp.push_back( mctrack[imc].Z() );
-	  if (simMcStepPosXtmp.size()>1) {
-	    mclen+=sqrt( (mctrack[imc].X()-mctrack[imc-1].X())*(mctrack[imc].X()-mctrack[imc-1].X()) +
-			 (mctrack[imc].Y()-mctrack[imc-1].Y())*(mctrack[imc].Y()-mctrack[imc-1].Y()) +
-			 (mctrack[imc].Z()-mctrack[imc-1].Z())*(mctrack[imc].Z()-mctrack[imc-1].Z()) );
+	  //
+	  Vector_t mcmom(mctrack[imc].Momentum().X()*0.001,mctrack[imc].Momentum().Y()*0.001,mctrack[imc].Momentum().Z()*0.001);
+	  positions.push_back({mctrack[imc].X(),mctrack[imc].Y(),mctrack[imc].Z()});
+	  momenta.push_back(mcmom);
+	  Vector_t mcdir = mcmom.Unit();
+	  if (newseg) {
+	    startsegdirs.push_back(mcdir);
+	    newseg = false;
+	    moms.push_back(mcmom.R());
+	    float beta = sqrt( 1. - ((m*m)/(moms.back()*moms.back() + m*m)) );
+	    betas.push_back(beta);
+	    es.push_back(mctrack[imc].Momentum().E()*0.001);
+	    //
+	    float e = mcsfittermc.GetE(std::sqrt(mcstartmom.R()*mcstartmom.R() - m*m), mclen, m);
+	    float p = std::sqrt(e*e - m*m);
+	    rmoms.push_back(p);
+	    float betaR = sqrt( 1. - ((m*m)/(rmoms.back()*rmoms.back() + m*m)) );
+	    rbetas.push_back(betaR);
+	    res.push_back(e);
 	  }
+	  if (imc<(mctrack.size()-0.5)) {
+	    if (mctrack[imc+1].X()<0.    || mctrack[imc+1].X()>260. ||
+		mctrack[imc+1].Y()<-115. || mctrack[imc+1].Y()>115. ||
+		mctrack[imc+1].Z()<0.    || mctrack[imc+1].Z()>1040.)
+	      {
+		//do nothing
+	      } else {
+	      mclen+=sqrt( (mctrack[imc+1].X()-mctrack[imc].X())*(mctrack[imc+1].X()-mctrack[imc].X()) +
+			   (mctrack[imc+1].Y()-mctrack[imc].Y())*(mctrack[imc+1].Y()-mctrack[imc].Y()) +
+			   (mctrack[imc+1].Z()-mctrack[imc].Z())*(mctrack[imc+1].Z()-mctrack[imc].Z()) );
+	      //check segment length along the initial direction //fixme
+	      thislen += sqrt( (mctrack[imc+1].X()-mctrack[imc].X())*(mctrack[imc+1].X()-mctrack[imc].X()) +
+                               (mctrack[imc+1].Y()-mctrack[imc].Y())*(mctrack[imc+1].Y()-mctrack[imc].Y()) +
+                               (mctrack[imc+1].Z()-mctrack[imc].Z())*(mctrack[imc+1].Z()-mctrack[imc].Z()) );
+	      // thislen += startsegdirs.back().Dot(Vector_t(mctrack[imc+1].X()-mctrack[imc].X(),mctrack[imc+1].Y()-mctrack[imc].Y(),mctrack[imc+1].Z()-mctrack[imc].Z()));
+	    }
+	  }
+	  if (thislen>thisSegLen-1.0) {
+	    lenghts.push_back(thislen);
+	    //
+	    // momentum is before the segment, but rms needs the actual length so goes here
+	    float beta = betas.back();
+	    float rms = ( mcsfittermc.MomentumDependentConstant(moms.back()) / (moms.back()*beta) ) * ( 1.0 + 0.038 * std::log( thislen/14. ) ) * sqrt( thislen/14. );
+	    rmss.push_back(rms);
+	    float rmshl = ( 13.6 / (moms.back()*beta) ) * ( 1.0 + 0.038 * std::log( thislen/14. ) ) * sqrt( thislen/14. );
+	    rmsshl.push_back(rmshl);
+	    //
+	    float betaR = rbetas.back();
+	    float rmsR = ( mcsfittermc.MomentumDependentConstant(rmoms.back()) / (rmoms.back()*betaR) ) * ( 1.0 + 0.038 * std::log( thislen/14. ) ) * sqrt( thislen/14. );
+	    rmsRs.push_back(rmsR);
+	    //
+	    // momsBogus.push_back(mcmom.R());
+	    //
+	    thislen = 0.;
+	    newseg = true;
+	  }
+	  //update values until the last point
 	  simEndPosX = mctrack[imc].X();
 	  simEndPosY = mctrack[imc].Y();
 	  simEndPosZ = mctrack[imc].Z();
-	  Vector_t mcmom(mctrack[imc].Momentum().X()*0.001,mctrack[imc].Momentum().Y()*0.001,mctrack[imc].Momentum().Z()*0.001);
-	  simMomEnd = mcmom.R();
-	  Vector_t mcdir = mcmom.Unit();
 	  simEndDirX = mcdir.X();
 	  simEndDirY = mcdir.Y();
 	  simEndDirZ = mcdir.Z();
+	  simMomEnd = mcmom.R();
 	}
+	// momsBogus.push_back(simMomEnd);
+	// momsBogus.erase(momsBogus.begin());
 	//
-	simMom = mcstartmom.R();
+        if (positions.size()<2) continue;
+        simMom = mcstartmom.R();
 	simLength = mclen;
 	simStartPosX = mctrack.Start().Position().X();
 	simStartPosY = mctrack.Start().Position().Y();
@@ -558,6 +742,107 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 	simProc = mctrack.Process();
 	simIsContained = mccontained;
 	simAndTrkSameDir = dotvtx>0;
+	//
+	recob::TrackTrajectory::Flags_t flags(positions.size());
+	const recob::TrackTrajectory mctj(std::move(positions),std::move(momenta),std::move(flags),true);
+	const auto mcsmcMu = mcsfittermc.fitMcs(mctj, 13, true);
+	std::cout << "simMom=" << simMom << " mcsmcMu=" << mcsmcMu.fwdMomentum() << std::endl;
+	simMom_MuFwd    = mcsmcMu.fwdMomentum();
+	simMomErr_MuFwd = mcsmcMu.fwdMomUncertainty();
+	simLL_MuFwd     = mcsmcMu.fwdLogLikelihood();
+	simMom_MuBwd    = mcsmcMu.bwdMomentum();
+	simMomErr_MuBwd = mcsmcMu.bwdMomUncertainty();
+	simLL_MuBwd     = mcsmcMu.bwdLogLikelihood();
+	simMom_Mu       = mcsmcMu.bestMomentum();
+	simMomErr_Mu    = mcsmcMu.bestMomUncertainty();
+	simLL_Mu        = mcsmcMu.bestLogLikelihood();
+	simDeltaLL_Mu   = mcsmcMu.deltaLogLikelihood();
+	simIsBestFwd_Mu = mcsmcMu.isBestFwd();
+	//
+	simSegRadLengths = mcsmcMu.segmentRadLengths();
+	simScattAngles   = mcsmcMu.scatterAngles();
+	simL = lenghts;
+	simE = es;
+	simP = moms;
+	simBeta = betas;
+	// simPbogus = momsBogus;
+	simRE = res;
+	simRP = rmoms;
+	simRBeta = rbetas;
+	simRMS = rmss;
+	simRMSHL = rmsshl;
+	simRMSR = rmsRs;
+	//
+	std::vector< float > dtheta3d;
+	std::vector< float > dtheta2dxz;
+	std::vector< float > dtheta2dyz;
+	for (unsigned int p = 1; p<startsegdirs.size(); p++) {
+	  auto pcdir0 = startsegdirs[p-1];
+	  auto pcdir1 = startsegdirs[p];
+	  //
+	  const float cosval3d = pcdir0.X()*pcdir1.X()+pcdir0.Y()*pcdir1.Y()+pcdir0.Z()*pcdir1.Z();
+	  //units are mrad
+	  float dt3d = 1000.*acos(cosval3d);//should we try to use expansion for small angles?
+	  dtheta3d.push_back(dt3d);
+	  //
+	  // this is the new basis with pcdir along z
+	  auto pcdir0z = pcdir0;
+	  auto pcdir0y = pcdir0.Cross( Vector_t(0,0,1) ).Unit();
+	  auto pcdir0x = pcdir0y.Cross( pcdir0z ).Unit();
+	  //
+	  // now find projections of pcdir1 along the axes of the new basis
+	  auto pcdir1x = pcdir0x.Dot( pcdir1 );
+	  auto pcdir1y = pcdir0y.Dot( pcdir1 );
+	  auto pcdir1z = pcdir0z.Dot( pcdir1 );
+	  //
+	  // compute angles with respect to z axis
+	  dtheta2dxz.push_back(1000.*atan2(pcdir1x,pcdir1z));
+	  dtheta2dyz.push_back(1000.*atan2(pcdir1y,pcdir1z));
+	}
+	simA3d = dtheta3d;
+	simA2dxz = dtheta2dxz;
+	simA2dyz = dtheta2dyz;
+	//
+	vector<size_t> breakpoints_mc;
+	vector<float> segradlengths_mc;
+	vector<float> cumseglens_mc;
+	mcsfittermc.breakTrajInSegments(mctj, breakpoints_mc, segradlengths_mc, cumseglens_mc);
+	Vector_t pcdir_mc;
+	std::vector< Vector_t > segdirs_mc;
+	for (unsigned int p = 0; p<segradlengths_mc.size(); p++) {
+	  mcsfittermc.linearRegression(mctj, breakpoints_mc[p], breakpoints_mc[p+1], pcdir_mc);
+	  segdirs_mc.push_back(pcdir_mc);
+	}
+	std::vector< float > dthetaAvg3d;
+	std::vector< float > dthetaAvg2dxz;
+	std::vector< float > dthetaAvg2dyz;
+	for (unsigned int p = 1; p<segdirs_mc.size(); p++) {
+	  auto pcdir_mc0 = segdirs_mc[p-1];
+	  auto pcdir_mc1 = segdirs_mc[p];
+	  //
+	  const float cosval3d = pcdir_mc0.X()*pcdir_mc1.X()+pcdir_mc0.Y()*pcdir_mc1.Y()+pcdir_mc0.Z()*pcdir_mc1.Z();
+	  //units are mrad
+	  float dt3d = 1000.*acos(cosval3d);//should we try to use expansion for small angles?
+	  dthetaAvg3d.push_back(dt3d);
+	  //
+	  // this is the new basis with pcdir_mc along z
+	  auto pcdir_mc0z = pcdir_mc0;
+	  auto pcdir_mc0y = pcdir_mc0.Cross( Vector_t(0,0,1) ).Unit();
+	  auto pcdir_mc0x = pcdir_mc0y.Cross( pcdir_mc0z ).Unit();
+	  //
+	  // now find projections of pcdir_mc1 along the axes of the new basis
+	  auto pcdir_mc1x = pcdir_mc0x.Dot( pcdir_mc1 );
+	  auto pcdir_mc1y = pcdir_mc0y.Dot( pcdir_mc1 );
+	  auto pcdir_mc1z = pcdir_mc0z.Dot( pcdir_mc1 );
+	  //
+	  // compute angles with respect to z axis
+	  dthetaAvg2dxz.push_back(1000.*atan2(pcdir_mc1x,pcdir_mc1z));
+	  dthetaAvg2dyz.push_back(1000.*atan2(pcdir_mc1y,pcdir_mc1z));
+	}
+	simAAvg3d = dthetaAvg3d;
+	simAAvg2dxz = dthetaAvg2dxz;
+	simAAvg2dyz = dthetaAvg2dyz;
+	//
 	break;
       }
     }

@@ -55,6 +55,7 @@ find_ups_product( postgresql v9_1_5 )
 find_ups_product( range )
 find_ups_product( eigen )
 find_ups_product( larreco )
+find_ups_product( pandora v02_00_00 )
 
 # macros for dictionary and simple_plugin
 include(ArtDictionary)
