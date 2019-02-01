@@ -303,11 +303,11 @@ void TrackingPerformance::analyze(art::Event const & e)
 	auto repos = t->Start();
 	auto redir = t->StartDirection();
 	//
-	auto scecorr = SCE->GetPosOffsets(geo::Point_t(mcp->Vx(),mcp->Vy(),mcp->Vz()));
+	auto scecorr = SCE->GetPosOffsets(mcp->Vx(),mcp->Vy(),mcp->Vz());
 	double g4Ticks = detClocks->TPCG4Time2Tick(mcp->T())+theDetector->GetXTicksOffset(0,0,0)-theDetector->TriggerOffset();
-	double xOffset = theDetector->ConvertTicksToX(g4Ticks, 0, 0, 0)-scecorr.X();
-	double yOffset = scecorr.Y();
-	double zOffset = scecorr.Z();
+	double xOffset = theDetector->ConvertTicksToX(g4Ticks, 0, 0, 0)-scecorr[0];
+	double yOffset = scecorr[1];
+	double zOffset = scecorr[2];
 	Point_t mcpos(mcp->Vx()+xOffset,mcp->Vy()+yOffset,mcp->Vz()+zOffset);
 	Vector_t mcdir(mcp->Px()/mcp->P(),mcp->Py()/mcp->P(),mcp->Pz()/mcp->P());
 	//
@@ -371,7 +371,7 @@ void TrackingPerformance::analyze(art::Event const & e)
 	}
 	//
 	if (0) cout << "repos=" << repos << " endpos=" << t->Trajectory().End() << " mcpos=" << mcpos << " mcposorig=" << Point_t(mcp->Vx(),mcp->Vy(),mcp->Vz()) << endl;
-	if (0) cout << "scecorr=" << scecorr << endl;
+	if (0) cout << "scecorr=" << scecorr[0] << ", " << scecorr[1] << ", " << scecorr[2] << endl;
 	if (0) cout << "redir=" << redir << " mcdir=" << mcdir << endl;
 	if (0) cout << "dot=" << redir.Dot(mcdir) << endl;
 	//

@@ -6,7 +6,6 @@ art_make(
 			    lardataobj_Simulation
 			    lardata_RecoObjects
 			    lardataobj_RecoBase
-			    larcorealg_Geometry
 			    larcore_Geometry_Geometry_service
 			    lardataobj_AnalysisBase
 			    lardata_Utilities
@@ -21,11 +20,10 @@ art_make(
 			    ${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
 			    art_Persistency_Common
 			    art_Utilities
-			    canvas
 			    ${MF_MESSAGELOGGER}
 			    ${MF_UTILITIES}
 			    ${FHICLCPP}
-			    cetlib cetlib_except
+			    cetlib
 			    ${CLHEP}
 			    ${ROOT_BASIC_LIB_LIST}
 			    ${G4_LIB_LIST}
