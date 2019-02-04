@@ -20,7 +20,9 @@
 #include "art/Framework/Services/Optional/TFileService.h"
 
 #include "lardataobj/RecoBase/PFParticle.h"
+#include "lardataobj/RecoBase/Vertex.h"
 #include "lardataobj/RecoBase/Track.h"
+#include "lardataobj/RecoBase/Hit.h"
 #include "lardataobj/RecoBase/MCSFitResult.h"
 #include "lardata/RecoObjects/TrackStatePropagator.h"
 
@@ -35,9 +37,11 @@
 #include "lardataobj/AnalysisBase/CosmicTag.h"
 
 #include "larevt/SpaceChargeServices/SpaceChargeService.h"
+#include "lardata/Utilities/ForEachAssociatedGroup.h"
 
-#include "TH1.h"
-#include "TH2.h"
+#include "TTree.h"
+
+// std::cout << __FUNCTION__ << " " << __LINE__ << std::endl;
 
 class TrackingPerformance : public art::EDAnalyzer {
 public:
@@ -52,95 +56,48 @@ public:
 
   void beginJob() override;
 
+art::Ptr<simb::MCParticle> getAssocMCParticle(const std::vector<art::Ptr<recob::Hit> >&,
+                                              const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& hittruth) const;
+
+  int nHitsFromMCParticle(size_t mcid,
+                          const std::vector<art::Ptr<recob::Hit> >&,
+                          const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& hittruth) const;
+
+  void resetTree();
+
 private:
   //
   std::string inputTracksLabel;
-  unsigned int minHits;
-  int selectPdgCode;
   //
-  TH1F* NumberTrajectoryPoints;
-  TH1F* CountValidPoints;
-  TH1F* HasMomentum;
-  TH1F* Length;
-  TH1F* dLength;
-  TH1F* dLengthRel;
-  TH1F* Chi2;
-  TH1F* Chi2PerNdof;
-  TH1F* Ndof;
-  TH1F* ParticleId;
-  TH1F* Theta;
-  TH1F* Phi;
-  TH1F* ZenithAngle;
-  TH1F* AzimuthAngle;
-  TH1F* NumberCovariance;
+  TTree* tree;
   //
-  TH1F* dx_assoc;
-  TH1F* dy_assoc;
-  TH1F* dz_assoc;
-  TH1F* dx_prop_assoc;
-  TH1F* dy_prop_assoc;
-  TH1F* dz_prop_assoc;
-  TH1F* dx_prop_assoc_rerr;
-  TH1F* dy_prop_assoc_rerr;
-  TH1F* dz_prop_assoc_rerr;
-  TH1F* dx_pull_prop_assoc;
-  TH1F* dy_pull_prop_assoc;
-  TH1F* dz_pull_prop_assoc;
+  // event id
+  int run, subrun, eventid;
   //
-  TH1F* dux_assoc;
-  TH1F* duy_assoc;
-  TH1F* duz_assoc;
-  TH1F* dux_prop_assoc;
-  TH1F* duy_prop_assoc;
-  TH1F* duz_prop_assoc;
-  TH1F* dux_prop_assoc_rerr;
-  TH1F* duy_prop_assoc_rerr;
-  TH1F* duz_prop_assoc_rerr;
-  TH1F* dux_pull_prop_assoc;
-  TH1F* duy_pull_prop_assoc;
-  TH1F* duz_pull_prop_assoc;
+  // generator information
+  int gen_nupdg, gen_mode, gen_ccnc, gen_inttype;
+  float gen_nue, gen_nux, gen_nuy, gen_nuz, gen_nupx, gen_nupy, gen_nupz,  gen_nux_sccorr, gen_nuy_sccorr, gen_nuz_sccorr;
   //
-  // TH1F* dp0_prop_assoc;
-  // TH1F* dp1_prop_assoc;
-  // TH1F* dp2_prop_assoc;
-  // TH1F* dp3_prop_assoc;
-  // TH1F* dp0_prop_assoc_rerr;
-  // TH1F* dp1_prop_assoc_rerr;
-  // TH1F* dp2_prop_assoc_rerr;
-  // TH1F* dp3_prop_assoc_rerr;
-  // TH1F* dp0_pull_prop_assoc;
-  // TH1F* dp1_pull_prop_assoc;
-  // TH1F* dp2_pull_prop_assoc;
-  // TH1F* dp3_pull_prop_assoc;
+  // mcparticle information
+  int mcp_num;
+  std::vector<int> mcp_idx, mcp_pdg, mcp_isprimary;
+  std::vector<float> mcp_e, mcp_ke, mcp_p, mcp_start_x, mcp_start_y, mcp_start_z, mcp_start_px, mcp_start_py, mcp_start_pz;
+  std::vector<float> mcp_start_x_sccorr, mcp_start_y_sccorr, mcp_start_z_sccorr;
+  std::vector<float> mcp_end_x, mcp_end_y, mcp_end_z;
   //
-  TH2F* x_vs_prop_pullX;
-  TH2F* y_vs_prop_pullX;
-  TH2F* z_vs_prop_pullX;
-  TH2F* dirx_vs_prop_pullX;
-  TH2F* diry_vs_prop_pullX;
-  TH2F* dirz_vs_prop_pullX;
-  TH2F* p_vs_prop_pullX;
-  TH2F* theta_vs_prop_pullX;
-  TH2F* phi_vs_prop_pullX;
-  TH2F* zenith_vs_prop_pullX;
-  TH2F* azimuth_vs_prop_pullX;
+  // pandora vertex information
+  int vtx_nupdg, vtx_nprimaries, vtx_ntrks;
+  float vtx_x, vtx_y, vtx_z;
+  std::vector<int> vtx_pdgprimaries;
   //
-  TH2F* mu_mcsmom_vs_truemom;
-  TH2F* mu_mcsmom_vs_truemom_contained;
+  // pandora track information
+  std::vector<int> trk_idx, trk_nhits, trk_nhits_p0, trk_nhits_p1, trk_nhits_p2;
+  std::vector<float> trk_start_x, trk_start_y, trk_start_z, trk_start_ux, trk_start_uy, trk_start_uz;
+  std::vector<float> trk_end_x, trk_end_y, trk_end_z, trk_end_ux, trk_end_uy, trk_end_uz;
+  std::vector<float> trk_length;
+  std::vector<int> trk_mcp_idx, trk_mcp_ntoth, trk_mcp_ntrkh;
+  std::vector<float> trk_mcp_length;
   //
-  TH1F* ptypemc;
-  TH1F* deltaP;
-  TH1F* deltaPrel;
-  TH1F* dRVtxMC;
-  TH1F* nHits;
-  TH1F* dotpdir;
-  //
-  TH2F* mom_vs_truemom;
-  TH2F* mom_vs_truemom_okid;
-  //
-  TH2F* ptype_rec_vs_mc;
-  TH1F* deltaP_okid;
-  TH1F* deltaPrel_okid;
   //
 };
 
@@ -148,97 +105,166 @@ private:
 TrackingPerformance::TrackingPerformance(fhicl::ParameterSet const & p)
   : EDAnalyzer(p)
   , inputTracksLabel(p.get<std::string>("inputTracksLabel"))
-  , minHits(p.get<unsigned int>("minHits"))
-  , selectPdgCode(p.get<int>("selectPdgCode"))
 {}
+
+void TrackingPerformance::resetTree() {
+  //
+  // event id
+  run = -999;
+  subrun = -999;
+  eventid = -999;
+  //
+  // generator information
+  gen_nupdg = -999;
+  gen_mode = -999;
+  gen_ccnc = -999;
+  gen_inttype = -999;
+  gen_nue = -999;
+  gen_nux = -999;
+  gen_nuy = -999;
+  gen_nuz = -999;
+  gen_nupx = -999;
+  gen_nupy = -999;
+  gen_nupz = -999;
+  gen_nux_sccorr = -999;
+  gen_nuy_sccorr = -999;
+  gen_nuz_sccorr = -999;
+  //
+  // mcparticle information
+  mcp_num = -999;
+  mcp_idx.clear();
+  mcp_pdg.clear();
+  mcp_isprimary.clear();
+  mcp_e.clear();
+  mcp_ke.clear();
+  mcp_p.clear();
+  mcp_start_x.clear();
+  mcp_start_y.clear();
+  mcp_start_z.clear();
+  mcp_start_px.clear();
+  mcp_start_py.clear();
+  mcp_start_pz.clear();
+  mcp_start_x_sccorr.clear();
+  mcp_start_y_sccorr.clear();
+  mcp_start_z_sccorr.clear();
+  mcp_end_x.clear();
+  mcp_end_y.clear();
+  mcp_end_z.clear();
+  //
+  // pandora vertex information
+  vtx_nupdg = -999;
+  vtx_nprimaries = -999;
+  vtx_ntrks = -999;
+  vtx_x = -999;
+  vtx_y = -999;
+  vtx_z = -999;
+  vtx_pdgprimaries.clear();
+  //
+  // pandora track information
+  trk_idx.clear();
+  trk_nhits.clear();
+  trk_nhits_p0.clear();
+  trk_nhits_p1.clear();
+  trk_nhits_p2.clear();
+  trk_start_x.clear();
+  trk_start_y.clear();
+  trk_start_z.clear();
+  trk_start_ux.clear();
+  trk_start_uy.clear();
+  trk_start_uz.clear();
+  trk_end_x.clear();
+  trk_end_y.clear();
+  trk_end_z.clear();
+  trk_end_ux.clear();
+  trk_end_uy.clear();
+  trk_end_uz.clear();
+  trk_length.clear();
+  trk_mcp_idx.clear();
+  trk_mcp_ntoth.clear();
+  trk_mcp_ntrkh.clear();
+  trk_mcp_length.clear();
+}
 
 void TrackingPerformance::beginJob()
 {
   art::ServiceHandle<art::TFileService> tfs;
   //
-  NumberTrajectoryPoints = tfs->make<TH1F>("NumberTrajectoryPoints","NumberTrajectoryPoints", 100, 0, 2500);
-  CountValidPoints       = tfs->make<TH1F>("CountValidPoints      ","CountValidPoints      ", 100, 0, 2500);
-  HasMomentum            = tfs->make<TH1F>("HasMomentum           ","HasMomentum           ",   2, 0,    2);
-  Length                 = tfs->make<TH1F>("Length                ","Length                ", 100,  0, 500);
-  dLength                = tfs->make<TH1F>("dLength               ","dLength               ", 100,-100,100);
-  dLengthRel             = tfs->make<TH1F>("dLengthRel            ","dLengthRel            ", 100, -1., 1.);
-  Chi2                   = tfs->make<TH1F>("Chi2                  ","Chi2                  ", 100,  0, 100);
-  Chi2PerNdof            = tfs->make<TH1F>("Chi2PerNdof           ","Chi2PerNdof           ", 100,  0,  10);
-  Ndof                   = tfs->make<TH1F>("Ndof                  ","Ndof                  ", 100, 0, 2500);
-  ParticleId             = tfs->make<TH1F>("ParticleId            ","ParticleId            ",   6, 0,    6);
-  Theta                  = tfs->make<TH1F>("Theta                 ","Theta                 ",  66,  0, 3.3);
-  Phi                    = tfs->make<TH1F>("Phi                   ","Phi                   ",  66,-3.3,3.3);
-  ZenithAngle            = tfs->make<TH1F>("ZenithAngle           ","ZenithAngle           ",  66,  0, 3.3);
-  AzimuthAngle           = tfs->make<TH1F>("AzimuthAngle          ","AzimuthAngle          ",  66,-3.3,3.3);
-  NumberCovariance       = tfs->make<TH1F>("NumberCovariance      ","NumberCovariance      ",  10, 0,   10);
+  tree = tfs->make<TTree>("tree", "tree");
   //
-  dx_assoc           = tfs->make<TH1F>("dx_assoc          ","dx_assoc          ",100,-2.5,2.5);
-  dy_assoc           = tfs->make<TH1F>("dy_assoc          ","dy_assoc          ",100,-2.5,2.5);
-  dz_assoc           = tfs->make<TH1F>("dz_assoc          ","dz_assoc          ",100,-2.5,2.5);
-  dx_prop_assoc      = tfs->make<TH1F>("dx_prop_assoc     ","dx_prop_assoc     ",100,-1.0,1.0);
-  dy_prop_assoc      = tfs->make<TH1F>("dy_prop_assoc     ","dy_prop_assoc     ",100,-1.0,1.0);
-  dz_prop_assoc      = tfs->make<TH1F>("dz_prop_assoc     ","dz_prop_assoc     ",100,-1.0,1.0);
-  dx_prop_assoc_rerr = tfs->make<TH1F>("dx_prop_assoc_rerr","dx_prop_assoc_rerr",100, 0.,1.);
-  dy_prop_assoc_rerr = tfs->make<TH1F>("dy_prop_assoc_rerr","dy_prop_assoc_rerr",100, 0.,1.);
-  dz_prop_assoc_rerr = tfs->make<TH1F>("dz_prop_assoc_rerr","dz_prop_assoc_rerr",100, 0.,1.);
-  dx_pull_prop_assoc = tfs->make<TH1F>("dx_pull_prop_assoc","dx_pull_prop_assoc",100,-5,5);
-  dy_pull_prop_assoc = tfs->make<TH1F>("dy_pull_prop_assoc","dy_pull_prop_assoc",100,-5,5);
-  dz_pull_prop_assoc = tfs->make<TH1F>("dz_pull_prop_assoc","dz_pull_prop_assoc",100,-5,5);
+  // event id
+  tree->Branch("run",&run,"run/I");
+  tree->Branch("subrun",&subrun,"subrun/I");
+  tree->Branch("eventid",&eventid,"eventid/I");
   //
-  dux_assoc          = tfs->make<TH1F>("dux_assoc         ","dux_assoc         ",100,-0.25,0.25);
-  duy_assoc          = tfs->make<TH1F>("duy_assoc         ","duy_assoc         ",100,-0.25,0.25);
-  duz_assoc          = tfs->make<TH1F>("duz_assoc         ","duz_assoc         ",100,-0.25,0.25);
-  dux_prop_assoc     = tfs->make<TH1F>("dux_prop_assoc    ","dux_prop_assoc    ",100,-0.25,0.25);
-  duy_prop_assoc     = tfs->make<TH1F>("duy_prop_assoc    ","duy_prop_assoc    ",100,-0.25,0.25);
-  duz_prop_assoc     = tfs->make<TH1F>("duz_prop_assoc    ","duz_prop_assoc    ",100,-0.25,0.25);
-  dux_prop_assoc_rerr = tfs->make<TH1F>("dux_prop_assoc_rerr","dux_prop_assoc_rerr",100, 0.,1.);
-  duy_prop_assoc_rerr = tfs->make<TH1F>("duy_prop_assoc_rerr","duy_prop_assoc_rerr",100, 0.,1.);
-  duz_prop_assoc_rerr = tfs->make<TH1F>("duz_prop_assoc_rerr","duz_prop_assoc_rerr",100, 0.,1.);
-  dux_pull_prop_assoc = tfs->make<TH1F>("dux_pull_prop_assoc","dux_pull_prop_assoc",100,-5,5);
-  duy_pull_prop_assoc = tfs->make<TH1F>("duy_pull_prop_assoc","duy_pull_prop_assoc",100,-5,5);
-  duz_pull_prop_assoc = tfs->make<TH1F>("duz_pull_prop_assoc","duz_pull_prop_assoc",100,-5,5);
+  // generator information
+  tree->Branch("gen_nupdg",&gen_nupdg,"gen_nupdg/I");
+  tree->Branch("gen_mode",&gen_mode,"gen_mode/I");
+  tree->Branch("gen_ccnc",&gen_ccnc,"gen_ccnc/I");
+  tree->Branch("gen_inttype",&gen_inttype,"gen_inttype/I");
+  tree->Branch("gen_nue",&gen_nue,"gen_nue/F");
+  tree->Branch("gen_nux",&gen_nux,"gen_nux/F");
+  tree->Branch("gen_nuy",&gen_nuy,"gen_nuy/F");
+  tree->Branch("gen_nuz",&gen_nuz,"gen_nuz/F");
+  tree->Branch("gen_nupx",&gen_nupx,"gen_nupx/F");
+  tree->Branch("gen_nupy",&gen_nupy,"gen_nupy/F");
+  tree->Branch("gen_nupz",&gen_nupz,"gen_nupz/F");
+  tree->Branch("gen_nux_sccorr",&gen_nux_sccorr,"gen_nux_sccorr/F");
+  tree->Branch("gen_nuy_sccorr",&gen_nuy_sccorr,"gen_nuy_sccorr/F");
+  tree->Branch("gen_nuz_sccorr",&gen_nuz_sccorr,"gen_nuz_sccorr/F");
   //
-  // dp0_prop_assoc      = tfs->make<TH1F>("dp0_prop_assoc     ","dp0_prop_assoc     ",100,-5,5);
-  // dp1_prop_assoc      = tfs->make<TH1F>("dp1_prop_assoc     ","dp1_prop_assoc     ",100,-10,10);
-  // dp2_prop_assoc      = tfs->make<TH1F>("dp2_prop_assoc     ","dp2_prop_assoc     ",100,-0.25,0.25);
-  // dp3_prop_assoc      = tfs->make<TH1F>("dp3_prop_assoc     ","dp3_prop_assoc     ",100,-0.25,0.25);
-  // dp0_prop_assoc_rerr = tfs->make<TH1F>("dp0_prop_assoc_rerr","dp0_prop_assoc_rerr",100, 0.,1.);
-  // dp1_prop_assoc_rerr = tfs->make<TH1F>("dp1_prop_assoc_rerr","dp1_prop_assoc_rerr",100, 0.,1.);
-  // dp2_prop_assoc_rerr = tfs->make<TH1F>("dp2_prop_assoc_rerr","dp2_prop_assoc_rerr",100, 0.,1.);
-  // dp3_prop_assoc_rerr = tfs->make<TH1F>("dp3_prop_assoc_rerr","dp3_prop_assoc_rerr",100, 0.,1.);
-  // dp0_pull_prop_assoc = tfs->make<TH1F>("dp0_pull_prop_assoc","dp0_pull_prop_assoc",100,-10,10);
-  // dp1_pull_prop_assoc = tfs->make<TH1F>("dp1_pull_prop_assoc","dp1_pull_prop_assoc",100,-10,10);
-  // dp2_pull_prop_assoc = tfs->make<TH1F>("dp2_pull_prop_assoc","dp2_pull_prop_assoc",100,-10,10);
-  // dp3_pull_prop_assoc = tfs->make<TH1F>("dp3_pull_prop_assoc","dp3_pull_prop_assoc",100,-10,10);
+  // mcparticle information
+  tree->Branch("mcp_num",&mcp_num,"mcp_num/I");
+  tree->Branch("mcp_idx",&mcp_idx);
+  tree->Branch("mcp_pdg",&mcp_pdg);
+  tree->Branch("mcp_isprimary",&mcp_isprimary);
+  tree->Branch("mcp_e",&mcp_e);
+  tree->Branch("mcp_ke",&mcp_ke);
+  tree->Branch("mcp_p",&mcp_p);
+  tree->Branch("mcp_start_x",&mcp_start_x);
+  tree->Branch("mcp_start_y",&mcp_start_y);
+  tree->Branch("mcp_start_z",&mcp_start_z);
+  tree->Branch("mcp_start_px",&mcp_start_px);
+  tree->Branch("mcp_start_py",&mcp_start_py);
+  tree->Branch("mcp_start_pz",&mcp_start_pz);
+  tree->Branch("mcp_start_x_sccorr",&mcp_start_x_sccorr);
+  tree->Branch("mcp_start_y_sccorr",&mcp_start_y_sccorr);
+  tree->Branch("mcp_start_z_sccorr",&mcp_start_z_sccorr);
+  tree->Branch("mcp_end_x",&mcp_end_x);
+  tree->Branch("mcp_end_y",&mcp_end_y);
+  tree->Branch("mcp_end_z",&mcp_end_z);
   //
-  x_vs_prop_pullX       = tfs->make<TH2F>("x_vs_prop_pullX      ", "x_vs_prop_pullX      ", 100, -10, 10, 100, 0, 1000);
-  y_vs_prop_pullX       = tfs->make<TH2F>("y_vs_prop_pullX      ", "y_vs_prop_pullX      ", 100, -10, 10, 100, -500, 500);
-  z_vs_prop_pullX       = tfs->make<TH2F>("z_vs_prop_pullX      ", "z_vs_prop_pullX      ", 100, -10, 10, 100, 0, 1000);
-  dirx_vs_prop_pullX    = tfs->make<TH2F>("dirx_vs_prop_pullX   ", "dirx_vs_prop_pullX   ", 100, -10, 10, 10, -1, 1);
-  diry_vs_prop_pullX    = tfs->make<TH2F>("diry_vs_prop_pullX   ", "diry_vs_prop_pullX   ", 100, -10, 10, 10, -1, 1);
-  dirz_vs_prop_pullX    = tfs->make<TH2F>("dirz_vs_prop_pullX   ", "dirz_vs_prop_pullX   ", 100, -10, 10, 10, -1, 1);
-  p_vs_prop_pullX       = tfs->make<TH2F>("p_vs_prop_pullX      ", "p_vs_prop_pullX      ", 100, -10, 10, 10, 0, 5);
-  theta_vs_prop_pullX   = tfs->make<TH2F>("theta_vs_prop_pullX  ", "theta_vs_prop_pullX  ", 100, -10, 10, 35, 0, 3.5);
-  phi_vs_prop_pullX     = tfs->make<TH2F>("phi_vs_prop_pullX    ", "phi_vs_prop_pullX    ", 100, -10, 10, 35, -3.5, 3.5);
-  zenith_vs_prop_pullX  = tfs->make<TH2F>("zenith_vs_prop_pullX ", "zenith_vs_prop_pullX ", 100, -10, 10, 35, 0, 3.5);
-  azimuth_vs_prop_pullX = tfs->make<TH2F>("azimuth_vs_prop_pullX", "azimuth_vs_prop_pullX", 100, -10, 10, 35, -3.5, 3.5);
+  // pandora vertex information
+  tree->Branch("vtx_nupdg",&vtx_nupdg,"vtx_nupdg/I");
+  tree->Branch("vtx_nprimaries",&vtx_nprimaries,"vtx_nprimaries/I");
+  tree->Branch("vtx_ntrks",&vtx_ntrks,"vtx_ntrks/I");
+  tree->Branch("vtx_x",&vtx_x,"vtx_x/F");
+  tree->Branch("vtx_y",&vtx_y,"vtx_y/F");
+  tree->Branch("vtx_z",&vtx_z,"vtx_z/F");
+  tree->Branch("vtx_pdgprimaries",&vtx_pdgprimaries);
   //
-  mu_mcsmom_vs_truemom = tfs->make<TH2F>("mu_mcsmom_vs_truemom", "mu_mcsmom_vs_truemom", 50, 0., 5., 50, 0., 5.);
-  mu_mcsmom_vs_truemom_contained = tfs->make<TH2F>("mu_mcsmom_vs_truemom_contained", "mu_mcsmom_vs_truemom_contained", 50, 0., 5., 50, 0., 5.);
-  //
-  ptypemc = tfs->make<TH1F>("ptypemc","ptypemc",6,0,6);
-  deltaP = tfs->make<TH1F>("deltaP","deltaP",20,-1,1);
-  deltaPrel = tfs->make<TH1F>("deltaPrel","deltaPrel",20,-1,1);
-  dRVtxMC = tfs->make<TH1F>("dRVtxMC","dRVtxMC",20,0,10);
-  nHits = tfs->make<TH1F>("nHits","nHits",20,0,100);
-  dotpdir = tfs->make<TH1F>("dotpdir","dotpdir",20,-1,1);
-  //
-  mom_vs_truemom = tfs->make<TH2F>("mom_vs_truemom", "mom_vs_truemom", 50, 0., 5., 50, 0., 5.);
-  mom_vs_truemom_okid = tfs->make<TH2F>("mom_vs_truemom_okid", "mom_vs_truemom_okid", 50, 0., 5., 50, 0., 5.);
-  //
-  ptype_rec_vs_mc = tfs->make<TH2F>("ptype_rec_vs_mc","ptype_rec_vs_mc",6,0,6,6,0,6);
-  deltaP_okid  = tfs->make<TH1F>("deltaP_okid","deltaP_okid",50,-1,1);
-  deltaPrel_okid  = tfs->make<TH1F>("deltaPrel_okid","deltaPrel_okid",50,-1,1);
+  // pandora track information
+  tree->Branch("trk_idx",&trk_idx);
+  tree->Branch("trk_nhits",&trk_nhits);
+  tree->Branch("trk_nhits_p0",&trk_nhits_p0);
+  tree->Branch("trk_nhits_p1",&trk_nhits_p1);
+  tree->Branch("trk_nhits_p2",&trk_nhits_p2);
+  tree->Branch("trk_start_x",&trk_start_x);
+  tree->Branch("trk_start_y",&trk_start_y);
+  tree->Branch("trk_start_z",&trk_start_z);
+  tree->Branch("trk_start_ux",&trk_start_ux);
+  tree->Branch("trk_start_uy",&trk_start_uy);
+  tree->Branch("trk_start_uz",&trk_start_uz);
+  tree->Branch("trk_end_x",&trk_end_x);
+  tree->Branch("trk_end_y",&trk_end_y);
+  tree->Branch("trk_end_z",&trk_end_z);
+  tree->Branch("trk_end_ux",&trk_end_ux);
+  tree->Branch("trk_end_uy",&trk_end_uy);
+  tree->Branch("trk_end_uz",&trk_end_uz);
+  tree->Branch("trk_length",&trk_length);
+  tree->Branch("trk_mcp_idx",&trk_mcp_idx);
+  tree->Branch("trk_mcp_ntoth",&trk_mcp_ntoth);
+  tree->Branch("trk_mcp_ntrkh",&trk_mcp_ntrkh);
+  tree->Branch("trk_mcp_length",&trk_mcp_length);
 }
 
 void TrackingPerformance::analyze(art::Event const & e)
@@ -250,201 +276,257 @@ void TrackingPerformance::analyze(art::Event const & e)
   //
   detinfo::DetectorProperties const* theDetector = lar::providerFrom<detinfo::DetectorPropertiesService>();
   detinfo::DetectorClocks const* detClocks = lar::providerFrom<detinfo::DetectorClocksService>();
-  auto const* SCE = lar::providerFrom<spacecharge::SpaceChargeService>(); 
+  auto const* SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
   //
   const auto& inputPFParticle = e.getValidHandle<vector<PFParticle> >("pandoraNu");
-  auto assocTracks = unique_ptr<art::FindManyP<Track> >(new art::FindManyP<Track>(inputPFParticle, e, inputTracksLabel));
-  auto const& truth = *e.getValidHandle<art::Assns<PFParticle,simb::MCParticle,anab::BackTrackerMatchingData> >("pandoraNuTruthMatch");
+  const auto& inputTracks = e.getValidHandle<vector<Track> >(inputTracksLabel);
+  //
+  const auto& assocVertex = unique_ptr<art::FindManyP<Vertex> >(new art::FindManyP<Vertex>(inputPFParticle, e, inputTracksLabel));
+  //
+  const auto& assocTracks = unique_ptr<art::FindManyP<Track> >(new art::FindManyP<Track>(inputPFParticle, e, inputTracksLabel));
+  const auto& tkHitsAssn = unique_ptr<art::FindManyP<Hit> >(new art::FindManyP<Hit>(inputTracks, e, inputTracksLabel));
+  //
+  const auto& inputHits = e.getValidHandle<vector<Hit> >("gaushit");
+  const auto& hittruth = unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >(new art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData>(inputHits,e,"gaushitTruthMatch"));
   //
   auto const& mctruth = *e.getValidHandle<std::vector<simb::MCTruth> >("generator");
+  auto const& mcparts = *e.getValidHandle<std::vector<simb::MCParticle> >("largeant");
   //
-  const auto& mcsmom = *e.getValidHandle<vector<MCSFitResult> >("pandoraNuMCSMu");
-  const std::vector<anab::CosmicTag>* cont = e.getValidHandle<std::vector<anab::CosmicTag> >("pandoraNuContTag").product();
 
   Point_t nuvtx(mctruth[0].GetNeutrino().Nu().Position().X(),mctruth[0].GetNeutrino().Nu().Position().Y(),mctruth[0].GetNeutrino().Nu().Position().Z());
-  if (0) std::cout << "nu vtx=" << nuvtx << " with daughters=" << mctruth[0].GetNeutrino().Nu().NumberDaughters() << std::endl;
-  for (int i=0; i<mctruth[0].NParticles(); ++i) {
-    if (mctruth[0].GetParticle(i).StatusCode()!=1) continue;
-    if (0) cout << "part pdgid=" << mctruth[0].GetParticle(i).PdgCode() << " pos=(" << mctruth[0].GetParticle(i).Vx() << "," << mctruth[0].GetParticle(i).Vy() << "," << mctruth[0].GetParticle(i).Vz() << ") dir=(" << mctruth[0].GetParticle(i).Px()/mctruth[0].GetParticle(i).P() << "," << mctruth[0].GetParticle(i).Py()/mctruth[0].GetParticle(i).P() << "," << mctruth[0].GetParticle(i).Pz()/mctruth[0].GetParticle(i).P() << ") p=" << mctruth[0].GetParticle(i).P() << " status=" << mctruth[0].GetParticle(i).StatusCode() << " process=" << mctruth[0].GetParticle(i).Process() << endl;
+  if (1) std::cout << "nu vtx=" << nuvtx
+                   << " mode=" << mctruth[0].GetNeutrino().Mode()
+                   << " CCNC=" << mctruth[0].GetNeutrino().CCNC()
+                   << " int_type=" << mctruth[0].GetNeutrino().InteractionType()
+                   << " Qsqr=" << mctruth[0].GetNeutrino().QSqr()
+                   << " with daughters=" << mctruth[0].GetNeutrino().Nu().NumberDaughters() << std::endl;
+  // for (int i=0; i<mctruth[0].NParticles(); ++i) {
+  //   if (mctruth[0].GetParticle(i).StatusCode()!=1) continue;
+  //   if (1) cout << "part pdgid=" << mctruth[0].GetParticle(i).PdgCode() << " id=" << mctruth[0].GetParticle(i).TrackId() << " pos=(" << mctruth[0].GetParticle(i).Vx() << "," << mctruth[0].GetParticle(i).Vy() << "," << mctruth[0].GetParticle(i).Vz() << ") dir=(" << mctruth[0].GetParticle(i).Px()/mctruth[0].GetParticle(i).P() << "," << mctruth[0].GetParticle(i).Py()/mctruth[0].GetParticle(i).P() << "," << mctruth[0].GetParticle(i).Pz()/mctruth[0].GetParticle(i).P() << ") p=" << mctruth[0].GetParticle(i).P() << " status=" << mctruth[0].GetParticle(i).StatusCode() << " process=" << mctruth[0].GetParticle(i).Process() << endl;
+  // }
+  for (auto m : mcparts) {
+    if (m.P()<0.100) continue;
+    if (1) cout << "mcpart pdgid=" << m.PdgCode() << " id=" << m.TrackId() << " pos=(" << m.Vx() << "," << m.Vy() << "," << m.Vz() << ") dir=(" << m.Px()/m.P() << "," << m.Py()/m.P() << "," << m.Pz()/m.P() << ") p=" << m.P() << " ke=" << m.E()-m.Mass() << " status=" << m.StatusCode() << " process=" << m.Process() << endl;
   }
 
   for (size_t iPF = 0; iPF < inputPFParticle->size(); ++iPF) {
+
     art::Ptr<PFParticle> pfp(inputPFParticle, iPF);
-    if (pfp->IsPrimary()==false || pfp->NumDaughters()<2) continue;
-    if (0) std::cout << "pfp#" << iPF << " PdgCode=" << pfp->PdgCode() 
-	      << " IsPrimary=" << pfp->IsPrimary()
-	      << " NumDaughters=" << pfp->NumDaughters()
-	      << std::endl;
+    if (pfp->IsPrimary()==false) continue;
+    //
+    resetTree();
+    //
+    run = e.run();
+    subrun = e.subRun();
+    eventid = e.event();
+    //
+    //
+    auto scecorr_nu = SCE->GetPosOffsets(mctruth[0].GetNeutrino().Nu().Vx(),mctruth[0].GetNeutrino().Nu().Vy(),mctruth[0].GetNeutrino().Nu().Vz());
+    double g4Ticks_nu = detClocks->TPCG4Time2Tick(mctruth[0].GetNeutrino().Nu().T())+theDetector->GetXTicksOffset(0,0,0)-theDetector->TriggerOffset();
+    double xOffset_nu = theDetector->ConvertTicksToX(g4Ticks_nu, 0, 0, 0)-scecorr_nu[0];
+    double yOffset_nu = scecorr_nu[1];
+    double zOffset_nu = scecorr_nu[2];
+    //
+    gen_nupdg = mctruth[0].GetNeutrino().Nu().PdgCode();
+    gen_mode = mctruth[0].GetNeutrino().Mode();
+    gen_ccnc = mctruth[0].GetNeutrino().CCNC();
+    gen_inttype = mctruth[0].GetNeutrino().InteractionType();
+    gen_nue = mctruth[0].GetNeutrino().Nu().E();
+    gen_nux = mctruth[0].GetNeutrino().Nu().Vx();
+    gen_nuy = mctruth[0].GetNeutrino().Nu().Vy();
+    gen_nuz = mctruth[0].GetNeutrino().Nu().Vz();
+    gen_nupx = mctruth[0].GetNeutrino().Nu().Px();
+    gen_nupy = mctruth[0].GetNeutrino().Nu().Py();
+    gen_nupz = mctruth[0].GetNeutrino().Nu().Pz();
+    gen_nux_sccorr = mctruth[0].GetNeutrino().Nu().Vx()+xOffset_nu;
+    gen_nuy_sccorr = mctruth[0].GetNeutrino().Nu().Vy()+yOffset_nu;
+    gen_nuz_sccorr = mctruth[0].GetNeutrino().Nu().Vz()+zOffset_nu;
+    //
+    // mcparticle information
+    mcp_num = 0;
+    for (auto m : mcparts) {
+      if (abs(m.PdgCode())==13 && (m.E()-m.Mass())<0.035) continue;
+      if (abs(m.PdgCode())==2212 && (m.E()-m.Mass())<0.060) continue;
+      if (abs(m.PdgCode())!=13 && abs(m.PdgCode())!=2212 && m.P()<0.100) continue;
+      auto scecorr_mcp = SCE->GetPosOffsets(m.Vx(),m.Vy(),m.Vz());
+      double g4Ticks_mcp = detClocks->TPCG4Time2Tick(m.T())+theDetector->GetXTicksOffset(0,0,0)-theDetector->TriggerOffset();
+      double xOffset_mcp = theDetector->ConvertTicksToX(g4Ticks_mcp, 0, 0, 0)-scecorr_mcp[0];
+      double yOffset_mcp = scecorr_mcp[1];
+      double zOffset_mcp = scecorr_mcp[2];
+      mcp_num++;
+      mcp_idx.push_back(m.TrackId());
+      mcp_pdg.push_back(m.PdgCode());
+      mcp_isprimary.push_back(m.Process()=="primary");
+      mcp_e.push_back(m.E());
+      mcp_ke.push_back(m.E()-m.Mass());
+      mcp_p.push_back(m.P());
+      mcp_start_x.push_back(m.Vx());
+      mcp_start_y.push_back(m.Vy());
+      mcp_start_z.push_back(m.Vz());
+      mcp_start_px.push_back(m.Px());
+      mcp_start_py.push_back(m.Py());
+      mcp_start_pz.push_back(m.Pz());
+      mcp_start_x_sccorr.push_back(m.Vx()+xOffset_mcp);
+      mcp_start_y_sccorr.push_back(m.Vy()+yOffset_mcp);
+      mcp_start_z_sccorr.push_back(m.Vz()+zOffset_mcp);
+      mcp_end_x.push_back(m.EndX());
+      mcp_end_y.push_back(m.EndY());
+      mcp_end_z.push_back(m.EndZ());
+    }
+    //
+    auto vtx = assocVertex->at(iPF);
+    double xyz[3];
+    vtx[0]->XYZ(xyz);
+    if (1) std::cout << "pfp#" << iPF << " PdgCode=" << pfp->PdgCode()
+              << " IsPrimary=" << pfp->IsPrimary()
+              << " NumDaughters=" << pfp->NumDaughters()
+              << " vtx=" << Point_t(xyz[0],xyz[1],xyz[2])
+              << std::endl;
     auto& pfd = pfp->Daughters();
+
+    vtx_nupdg = pfp->PdgCode();
+    vtx_nprimaries = pfp->NumDaughters();
+    vtx_x = xyz[0];
+    vtx_y = xyz[1];
+    vtx_z = xyz[2];
+    vtx_ntrks = 0;
     for (auto ipfd : pfd) {
       vector< art::Ptr<Track> > pftracks = assocTracks->at(ipfd);
       art::Ptr<PFParticle> pfpd(inputPFParticle, ipfd);
-      if (0) cout << "pfp id=" << ipfd << " pdg=" << pfpd->PdgCode() << endl;
+      if (1) cout << "pfp id=" << ipfd << " pdg=" << pfpd->PdgCode() << endl;
+      vtx_pdgprimaries.push_back(pfpd->PdgCode());
+      vtx_ntrks+=pftracks.size();
+    }
+
+    for (auto ipfd : pfd) {
+      vector< art::Ptr<Track> > pftracks = assocTracks->at(ipfd);
+      art::Ptr<PFParticle> pfpd(inputPFParticle, ipfd);
+      if (1) cout << "pfp id=" << ipfd << " pdg=" << pfpd->PdgCode() << endl;
+
       for (auto t : pftracks) {
-	//
-	if (selectPdgCode!=-1 && std::abs(t->ParticleId())!=selectPdgCode) {
-	  if (0) cout << "track has not the selected pdgCode but=" << t->ParticleId() << endl;
-	  continue;
-	}
-	nHits->Fill(t->CountValidPoints());
-	if (t->CountValidPoints()<minHits) {
-	  if (0) cout << "track has only npoints=" << t->CountValidPoints() << endl;
-	  continue;
-	}
-	//
-	auto mcp = truth[ipfd].second;
-	dRVtxMC->Fill((nuvtx-Point_t(mcp->Vx(),mcp->Vy(),mcp->Vz())).R());
-	if (0) cout << "MCParticle status=" << mcp->StatusCode() << " Mother=" << mcp->Mother() << " Process=" << mcp->Process() /*<< " MotherPdgCode=" << (mcp->Mother()>=0 ? mctruth[0].GetParticle(mcp->Mother()).PdgCode() : 0)*/ << endl;
-	if ((nuvtx-Point_t(mcp->Vx(),mcp->Vy(),mcp->Vz())).R()>0.5) {
-	  if (0) cout << "track has matched particle not from neutrino" << endl;
-	  continue;
-	}
-	//
-	auto repos = t->Start();
-	auto redir = t->StartDirection();
-	//
-	auto scecorr = SCE->GetPosOffsets(mcp->Vx(),mcp->Vy(),mcp->Vz());
-	double g4Ticks = detClocks->TPCG4Time2Tick(mcp->T())+theDetector->GetXTicksOffset(0,0,0)-theDetector->TriggerOffset();
-	double xOffset = theDetector->ConvertTicksToX(g4Ticks, 0, 0, 0)-scecorr[0];
-	double yOffset = scecorr[1];
-	double zOffset = scecorr[2];
-	Point_t mcpos(mcp->Vx()+xOffset,mcp->Vy()+yOffset,mcp->Vz()+zOffset);
-	Vector_t mcdir(mcp->Px()/mcp->P(),mcp->Py()/mcp->P(),mcp->Pz()/mcp->P());
-	//
-	dotpdir->Fill(redir.Dot(mcdir));
-	if (redir.Dot(mcdir)<0.5) {
-	  if (0) cout << "track not in the right direction..." << endl;
-	  continue;//fixme, if too frequent impose direction exiting from vertex
-	}
-	//
-	int pidmc = 0;
-	if (std::abs(mcp->PdgCode())==13)        pidmc = 1;
-	else if (std::abs(mcp->PdgCode())==211)  pidmc = 2;
-	else if (std::abs(mcp->PdgCode())==321)  pidmc = 3;
-	else if (std::abs(mcp->PdgCode())==2212) pidmc = 4;
-	else if (std::abs(mcp->PdgCode())==11)   pidmc = 5;
-	ptypemc->Fill(pidmc);
-	int pidr = 0;
-	if (std::abs(t->ParticleId())==13)        pidr = 1;
-	else if (std::abs(t->ParticleId())==211)  pidr = 2;
-	else if (std::abs(t->ParticleId())==321)  pidr = 3;
-	else if (std::abs(t->ParticleId())==2212) pidr = 4;
-	else if (std::abs(t->ParticleId())==11)   pidr = 5;
-	ptype_rec_vs_mc->Fill(pidmc,pidr);
-	if (selectPdgCode!=-1 && std::abs(t->ParticleId())!=std::abs(mcp->PdgCode())) {
-	  if (0) cout << "track has not the same pdgCode as MC:" << t->ParticleId() << " vs " << mcp->PdgCode() << endl;
-	  continue;
-	}
-	//
-	if (0) cout << "trk pos=" << t->Start() << " dir=" << t->StartDirection() << " p=" << t->VertexMomentum() << " pdg=" << t->ParticleId() << endl;
-	if (0) cout << "mcp pos=(" << mcp->Vx() << "," << mcp->Vy() << "," << mcp->Vz() << ") dir=(" << mcp->Px()/mcp->P() << "," << mcp->Py()/mcp->P() << "," << mcp->Pz()/mcp->P() << ") p=" << mcp->P() << " pdg=" << mcp->PdgCode() << " mom=" << mcp->Mother() << " id=" << mcp->TrackId() << " proc=" << mcp->Process() << endl;
-	//
-	NumberTrajectoryPoints->Fill(t->NumberTrajectoryPoints());
-	CountValidPoints->Fill(t->CountValidPoints());
-	HasMomentum->Fill(t->HasMomentum());
-	auto rl = t->Length();
-	auto mcl = mcp->Trajectory().TotalLength();
-	Length->Fill(rl);
-	dLength->Fill(rl-mcl);
-	dLengthRel->Fill( (rl-mcl)/mcl );
-	Chi2->Fill(t->Chi2());
-	Chi2PerNdof->Fill(t->Chi2PerNdof());
-	Ndof->Fill(t->Ndof());
-	if (std::abs(t->ParticleId())==13)        ParticleId->Fill(1);
-	else if (std::abs(t->ParticleId())==211)  ParticleId->Fill(2);
-	else if (std::abs(t->ParticleId())==321)  ParticleId->Fill(3);
-	else if (std::abs(t->ParticleId())==2212) ParticleId->Fill(4);
-	else if (std::abs(t->ParticleId())==11)   ParticleId->Fill(5);
-	else ParticleId->Fill(0);
-	Theta->Fill(t->Theta());
-	Phi->Fill(t->Phi());
-	ZenithAngle->Fill(t->ZenithAngle());
-	AzimuthAngle->Fill(t->AzimuthAngle());
-	NumberCovariance->Fill(t->NumberCovariance());
-	deltaP->Fill( t->StartMomentum()-mcp->P() );
-	deltaPrel->Fill( (t->StartMomentum()-mcp->P())/mcp->P() );
-	mom_vs_truemom->Fill(mcp->P(),t->StartMomentum());
-	if (std::abs(t->ParticleId())==std::abs(mcp->PdgCode())) {
-	  deltaP_okid->Fill( t->StartMomentum()-mcp->P() );
-	  deltaPrel_okid->Fill( (t->StartMomentum()-mcp->P())/mcp->P() );
-	  mom_vs_truemom_okid->Fill(mcp->P(),t->StartMomentum());
-	}
-	//
-	if (0) cout << "repos=" << repos << " endpos=" << t->Trajectory().End() << " mcpos=" << mcpos << " mcposorig=" << Point_t(mcp->Vx(),mcp->Vy(),mcp->Vz()) << endl;
-	if (0) cout << "scecorr=" << scecorr[0] << ", " << scecorr[1] << ", " << scecorr[2] << endl;
-	if (0) cout << "redir=" << redir << " mcdir=" << mcdir << endl;
-	if (0) cout << "dot=" << redir.Dot(mcdir) << endl;
-	//
-	dx_assoc->Fill(repos.X()-mcpos.X());
-	dy_assoc->Fill(repos.Y()-mcpos.Y());
-	dz_assoc->Fill(repos.Z()-mcpos.Z());
-	dux_assoc->Fill(redir.X()-mcdir.X());
-	duy_assoc->Fill(redir.Y()-mcdir.Y());
-	duz_assoc->Fill(redir.Z()-mcdir.Z());
-	//
-	trkf::TrackStatePropagator prop(1.0, 0.1, 10, 10., 0.01, false);
-	recob::tracking::Plane mcplane(mcpos,mcdir);
-	recob::tracking::Plane tkplane(repos,redir);
-	trkf::TrackState tkstart(t->VertexParametersLocal5D(), t->VertexCovarianceLocal5D(), tkplane, true, t->ParticleId());
-	bool propok = true;
-	trkf::TrackState tkatmc = prop.propagateToPlane(propok, tkstart, mcplane, true, true, trkf::TrackStatePropagator::UNKNOWN);
-	//
-	if (!propok) continue;
-	//
-	auto prpos = tkatmc.position();
-	if (0) cout << "prpos=" << prpos << endl;
-	auto prdir = tkatmc.momentum().Unit();
-	auto c = tkatmc.plane().Local5DToGlobal6DCovariance(tkatmc.covariance(),false,tkatmc.momentum());//consider direction not momentum
-	// auto cv = pfp.Track.VertexCovarianceLocal5D();
-	//
-	dx_prop_assoc->Fill(prpos.X()-mcpos.X());
-	dy_prop_assoc->Fill(prpos.Y()-mcpos.Y());
-	dz_prop_assoc->Fill(prpos.Z()-mcpos.Z());
-	dux_prop_assoc->Fill(prdir.X()-mcdir.X());
-	duy_prop_assoc->Fill(prdir.Y()-mcdir.Y());
-	duz_prop_assoc->Fill(prdir.Z()-mcdir.Z());
-	//
-	dx_prop_assoc_rerr->Fill( sqrt(c(0,0))/fabs(prpos.X()) );
-	dy_prop_assoc_rerr->Fill( sqrt(c(1,1))/fabs(prpos.Y()) );
-	dz_prop_assoc_rerr->Fill( sqrt(c(2,2))/fabs(prpos.Z()) );
-	dux_prop_assoc_rerr->Fill( sqrt(c(3,3))/fabs(prdir.X()) );
-	duy_prop_assoc_rerr->Fill( sqrt(c(4,4))/fabs(prdir.Y()) );
-	duz_prop_assoc_rerr->Fill( sqrt(c(5,5))/fabs(prdir.Z()) );
-	//	
-	dx_pull_prop_assoc->Fill( (prpos.X()-mcpos.X())/sqrt(c(0,0)) );
-	dy_pull_prop_assoc->Fill( (prpos.Y()-mcpos.Y())/sqrt(c(1,1)) );
-	dz_pull_prop_assoc->Fill( (prpos.Z()-mcpos.Z())/sqrt(c(2,2)) );
-	dux_pull_prop_assoc->Fill( (prdir.X()-mcdir.X())/sqrt(c(3,3)) );
-	duy_pull_prop_assoc->Fill( (prdir.Y()-mcdir.Y())/sqrt(c(4,4)) );
-	duz_pull_prop_assoc->Fill( (prdir.Z()-mcdir.Z())/sqrt(c(5,5)) );
-	//
-	auto pullX = (prpos.X()-mcpos.X())/sqrt(c(0,0));
-	x_vs_prop_pullX->Fill(pullX,mcpos.X());
-	y_vs_prop_pullX->Fill(pullX,mcpos.Y());
-	z_vs_prop_pullX->Fill(pullX,mcpos.Z());
-	dirx_vs_prop_pullX->Fill(pullX,mcdir.X());
-	diry_vs_prop_pullX->Fill(pullX,mcdir.Y());
-	dirz_vs_prop_pullX->Fill(pullX,mcdir.Z());
-	p_vs_prop_pullX->Fill(pullX,mcp->P());
-	theta_vs_prop_pullX->Fill(pullX,t->Theta());
-	phi_vs_prop_pullX->Fill(pullX,t->Phi());
-	zenith_vs_prop_pullX->Fill(pullX,t->ZenithAngle());
-	azimuth_vs_prop_pullX->Fill(pullX,t->AzimuthAngle());
-	//
-        if (std::abs(mcp->PdgCode())==13) {
-          //a muon, check mcs mom
-          auto mcs = mcsmom[t.key()];
-          if (0) std::cout << "muon with mc mom=" << mcp->P() << " mcs=" << mcs.bestMomentum() << std::endl;
-          mu_mcsmom_vs_truemom->Fill(mcp->P(),mcs.bestMomentum());
-	  //
-	  bool isContained = cont->at(t->ID()).CosmicType()==anab::kNotTagged;
-          if (isContained) mu_mcsmom_vs_truemom_contained->Fill(mcp->P(),mcs.bestMomentum());
+        //
+        if (1) std::cout << "track id=" << t->ID() << " nhits=" << t->NumberTrajectoryPoints()
+                         << " len=" << t->Length()
+                         << " start=" << t->Trajectory().Vertex() << " end=" << t->Trajectory().End()
+                         << " startdir=" << t->Trajectory().VertexDirection() << " enddir=" << t->Trajectory().EndDirection()
+                         << std::endl;
+        //
+        int nhp0 = 0, nhp1 = 0, nhp2 = 0;
+        std::vector<art::Ptr<recob::Hit> > alltrkhits;
+        auto hitsRange = tkHitsAssn->at(t.key());
+        for (art::Ptr<recob::Hit> const& hit: hitsRange) {
+          if (hit->WireID().Plane==0) nhp0++;
+          if (hit->WireID().Plane==1) nhp1++;
+          if (hit->WireID().Plane==2) nhp2++;
+          //find match in gaushit (needed because the mc truth is broken for the cosmic-removed hit collection)
+          for (unsigned int ig=0; ig<inputHits->size(); ig++) {
+            const auto& gahit = inputHits->at(ig);
+            if (hit->Channel()==gahit.Channel() && std::abs(hit->PeakTime()-gahit.PeakTime())<0.000001) {
+              alltrkhits.push_back(art::Ptr<recob::Hit>(inputHits,ig));
+              break;
+            }
+          }
         }
+
+        //
+        trk_idx.push_back(t->ID());
+        trk_nhits.push_back(alltrkhits.size());
+        trk_nhits_p0.push_back(nhp0);
+        trk_nhits_p1.push_back(nhp1);
+        trk_nhits_p2.push_back(nhp2);
+      	trk_start_x.push_back(t->Start().X());
+	trk_start_y.push_back(t->Start().Y());
+	trk_start_z.push_back(t->Start().Z());
+	trk_start_ux.push_back(t->StartDirection().X());
+	trk_start_uy.push_back(t->StartDirection().Y());
+	trk_start_uz.push_back(t->StartDirection().Z());
+      	trk_end_x.push_back(t->End().X());
+	trk_end_y.push_back(t->End().Y());
+	trk_end_z.push_back(t->End().Z());
+	trk_end_ux.push_back(t->EndDirection().X());
+	trk_end_uy.push_back(t->EndDirection().Y());
+	trk_end_uz.push_back(t->EndDirection().Z());
+	trk_length.push_back(t->Length());
+	//
+
+        art::Ptr<simb::MCParticle> mcp = getAssocMCParticle(alltrkhits,hittruth);
+        if (mcp.isNull()) continue;
+
+        int nFoundMcpHits = nHitsFromMCParticle(mcp.key(),alltrkhits,hittruth);
+        std::vector<art::Ptr<recob::Hit> > gaushits;
+        for (size_t ih=0;ih<inputHits->size();ih++) gaushits.push_back({inputHits,ih});
+        int nTotMcpHits = nHitsFromMCParticle(mcp.key(),gaushits,hittruth);
+
+        auto mcl = mcp->Trajectory().TotalLength();
+        //
+        auto scecorr = SCE->GetPosOffsets(mcp->Vx(),mcp->Vy(),mcp->Vz());
+        double g4Ticks = detClocks->TPCG4Time2Tick(mcp->T())+theDetector->GetXTicksOffset(0,0,0)-theDetector->TriggerOffset();
+        double xOffset = theDetector->ConvertTicksToX(g4Ticks, 0, 0, 0)-scecorr[0];
+        double yOffset = scecorr[1];
+        double zOffset = scecorr[2];
+        Point_t mcpos(mcp->Vx()+xOffset,mcp->Vy()+yOffset,mcp->Vz()+zOffset);
+        Vector_t mcdir(mcp->Px()/mcp->P(),mcp->Py()/mcp->P(),mcp->Pz()/mcp->P());
+        //
+        if (1) cout << "matched particle with id=" << mcp->TrackId() << " nFoundMcpHits=" << nFoundMcpHits << " nTotMcpHits=" << nTotMcpHits
+		    << " status=" << mcp->StatusCode()
+		    << " length=" << mcl
+		    << " pos=(" << mcp->Vx() << "," << mcp->Vy() << "," << mcp->Vz() 
+		    << ") dir=(" << mcp->Px()/mcp->P() << "," << mcp->Py()/mcp->P() << "," << mcp->Pz()/mcp->P() << ") p=" << mcp->P() 
+		    << " sce_corr_pos=" << mcpos
+		    << " pdg=" << mcp->PdgCode() << " mom=" << mcp->Mother() << " proc=" << mcp->Process() 
+		    << endl;
+        if (1) cout << "scecorr=" << scecorr[0] << ", " << scecorr[1] << ", " << scecorr[2] << endl;
+	//
+	trk_mcp_idx.push_back(mcp->TrackId());
+	trk_mcp_ntoth.push_back(nTotMcpHits);
+	trk_mcp_ntrkh.push_back(nFoundMcpHits);
+	trk_mcp_length.push_back(mcl);
       }
     }
+    tree->Fill();
   }
 
-  
+
+}
+
+art::Ptr<simb::MCParticle> TrackingPerformance::getAssocMCParticle(const std::vector<art::Ptr<recob::Hit> >& hits,
+								   const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& hittruth) const {
+  //credit: Wes Ketchum
+  std::unordered_map<int,double> trkide;
+  double maxe=-1, tote=0;
+  art::Ptr<simb::MCParticle> maxp_me; //pointer for the particle match we will calculate
+  for (auto h : hits) {
+    std::vector<art::Ptr<simb::MCParticle> > particle_vec = hittruth->at(h.key());
+    std::vector<anab::BackTrackerHitMatchingData const*> match_vec = hittruth->data(h.key());;
+    //loop over particles
+    for(size_t i_p=0; i_p<particle_vec.size(); ++i_p){
+      trkide[ particle_vec[i_p]->TrackId() ] += match_vec[i_p]->energy; //store energy per track id
+      tote += match_vec[i_p]->energy; //calculate total energy deposited
+      if( trkide[ particle_vec[i_p]->TrackId() ] > maxe ){ //keep track of maximum
+	maxe = trkide[ particle_vec[i_p]->TrackId() ];
+	maxp_me = particle_vec[i_p];
+      }
+    }//end loop over particles per hit
+  }
+  return maxp_me;
+}
+
+int TrackingPerformance::nHitsFromMCParticle(size_t mcid,
+					     const std::vector<art::Ptr<recob::Hit> >& hits,
+					     const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& hittruth) const {
+
+  int count = 0;
+  for (auto h : hits) {
+    std::vector<art::Ptr<simb::MCParticle> > particle_vec = hittruth->at(h.key());
+    std::vector<anab::BackTrackerHitMatchingData const*> match_vec = hittruth->data(h.key());;
+    //loop over particles
+    for(size_t i_p=0; i_p<particle_vec.size(); ++i_p){
+      if (match_vec[i_p]->isMaxIDE==0) continue;
+      if (particle_vec[i_p].key()!=mcid) continue;
+      count++;
+    }
+  }
+  return count;
 }
 
 DEFINE_ART_MODULE(TrackingPerformance)
