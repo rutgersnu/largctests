@@ -294,7 +294,7 @@ void TrackingPerformance::analyze(art::Event const & e)
   //
 
   Point_t nuvtx(mctruth[0].GetNeutrino().Nu().Position().X(),mctruth[0].GetNeutrino().Nu().Position().Y(),mctruth[0].GetNeutrino().Nu().Position().Z());
-  if (1) std::cout << "nu vtx=" << nuvtx
+  if (0) std::cout << "nu vtx=" << nuvtx
                    << " mode=" << mctruth[0].GetNeutrino().Mode()
                    << " CCNC=" << mctruth[0].GetNeutrino().CCNC()
                    << " int_type=" << mctruth[0].GetNeutrino().InteractionType()
@@ -302,11 +302,11 @@ void TrackingPerformance::analyze(art::Event const & e)
                    << " with daughters=" << mctruth[0].GetNeutrino().Nu().NumberDaughters() << std::endl;
   // for (int i=0; i<mctruth[0].NParticles(); ++i) {
   //   if (mctruth[0].GetParticle(i).StatusCode()!=1) continue;
-  //   if (1) cout << "part pdgid=" << mctruth[0].GetParticle(i).PdgCode() << " id=" << mctruth[0].GetParticle(i).TrackId() << " pos=(" << mctruth[0].GetParticle(i).Vx() << "," << mctruth[0].GetParticle(i).Vy() << "," << mctruth[0].GetParticle(i).Vz() << ") dir=(" << mctruth[0].GetParticle(i).Px()/mctruth[0].GetParticle(i).P() << "," << mctruth[0].GetParticle(i).Py()/mctruth[0].GetParticle(i).P() << "," << mctruth[0].GetParticle(i).Pz()/mctruth[0].GetParticle(i).P() << ") p=" << mctruth[0].GetParticle(i).P() << " status=" << mctruth[0].GetParticle(i).StatusCode() << " process=" << mctruth[0].GetParticle(i).Process() << endl;
+  //   if (0) cout << "part pdgid=" << mctruth[0].GetParticle(i).PdgCode() << " id=" << mctruth[0].GetParticle(i).TrackId() << " pos=(" << mctruth[0].GetParticle(i).Vx() << "," << mctruth[0].GetParticle(i).Vy() << "," << mctruth[0].GetParticle(i).Vz() << ") dir=(" << mctruth[0].GetParticle(i).Px()/mctruth[0].GetParticle(i).P() << "," << mctruth[0].GetParticle(i).Py()/mctruth[0].GetParticle(i).P() << "," << mctruth[0].GetParticle(i).Pz()/mctruth[0].GetParticle(i).P() << ") p=" << mctruth[0].GetParticle(i).P() << " status=" << mctruth[0].GetParticle(i).StatusCode() << " process=" << mctruth[0].GetParticle(i).Process() << endl;
   // }
   for (auto m : mcparts) {
     if (m.P()<0.100) continue;
-    if (1) cout << "mcpart pdgid=" << m.PdgCode() << " id=" << m.TrackId() << " pos=(" << m.Vx() << "," << m.Vy() << "," << m.Vz() << ") dir=(" << m.Px()/m.P() << "," << m.Py()/m.P() << "," << m.Pz()/m.P() << ") p=" << m.P() << " ke=" << m.E()-m.Mass() << " status=" << m.StatusCode() << " process=" << m.Process() << endl;
+    if (0) cout << "mcpart pdgid=" << m.PdgCode() << " id=" << m.TrackId() << " pos=(" << m.Vx() << "," << m.Vy() << "," << m.Vz() << ") dir=(" << m.Px()/m.P() << "," << m.Py()/m.P() << "," << m.Pz()/m.P() << ") p=" << m.P() << " ke=" << m.E()-m.Mass() << " status=" << m.StatusCode() << " process=" << m.Process() << endl;
   }
 
   for (size_t iPF = 0; iPF < inputPFParticle->size(); ++iPF) {
@@ -377,7 +377,7 @@ void TrackingPerformance::analyze(art::Event const & e)
     auto vtx = assocVertex->at(iPF);
     double xyz[3];
     vtx[0]->XYZ(xyz);
-    if (1) std::cout << "pfp#" << iPF << " PdgCode=" << pfp->PdgCode()
+    if (0) std::cout << "pfp#" << iPF << " PdgCode=" << pfp->PdgCode()
               << " IsPrimary=" << pfp->IsPrimary()
               << " NumDaughters=" << pfp->NumDaughters()
               << " vtx=" << Point_t(xyz[0],xyz[1],xyz[2])
@@ -393,7 +393,7 @@ void TrackingPerformance::analyze(art::Event const & e)
     for (auto ipfd : pfd) {
       vector< art::Ptr<Track> > pftracks = assocTracks->at(ipfd);
       art::Ptr<PFParticle> pfpd(inputPFParticle, ipfd);
-      if (1) cout << "pfp id=" << ipfd << " pdg=" << pfpd->PdgCode() << endl;
+      if (0) cout << "pfp id=" << ipfd << " pdg=" << pfpd->PdgCode() << endl;
       vtx_pdgprimaries.push_back(pfpd->PdgCode());
       vtx_ntrks+=pftracks.size();
     }
@@ -401,11 +401,11 @@ void TrackingPerformance::analyze(art::Event const & e)
     for (auto ipfd : pfd) {
       vector< art::Ptr<Track> > pftracks = assocTracks->at(ipfd);
       art::Ptr<PFParticle> pfpd(inputPFParticle, ipfd);
-      if (1) cout << "pfp id=" << ipfd << " pdg=" << pfpd->PdgCode() << endl;
+      if (0) cout << "pfp id=" << ipfd << " pdg=" << pfpd->PdgCode() << endl;
 
       for (auto t : pftracks) {
         //
-        if (1) std::cout << "track id=" << t->ID() << " nhits=" << t->NumberTrajectoryPoints()
+        if (0) std::cout << "track id=" << t->ID() << " nhits=" << t->NumberTrajectoryPoints()
                          << " len=" << t->Length()
                          << " start=" << t->Trajectory().Vertex() << " end=" << t->Trajectory().End()
                          << " startdir=" << t->Trajectory().VertexDirection() << " enddir=" << t->Trajectory().EndDirection()
@@ -467,7 +467,7 @@ void TrackingPerformance::analyze(art::Event const & e)
         Point_t mcpos(mcp->Vx()+xOffset,mcp->Vy()+yOffset,mcp->Vz()+zOffset);
         Vector_t mcdir(mcp->Px()/mcp->P(),mcp->Py()/mcp->P(),mcp->Pz()/mcp->P());
         //
-        if (1) cout << "matched particle with id=" << mcp->TrackId() << " nFoundMcpHits=" << nFoundMcpHits << " nTotMcpHits=" << nTotMcpHits
+        if (0) cout << "matched particle with id=" << mcp->TrackId() << " nFoundMcpHits=" << nFoundMcpHits << " nTotMcpHits=" << nTotMcpHits
 		    << " status=" << mcp->StatusCode()
 		    << " length=" << mcl
 		    << " pos=(" << mcp->Vx() << "," << mcp->Vy() << "," << mcp->Vz() 
@@ -475,7 +475,7 @@ void TrackingPerformance::analyze(art::Event const & e)
 		    << " sce_corr_pos=" << mcpos
 		    << " pdg=" << mcp->PdgCode() << " mom=" << mcp->Mother() << " proc=" << mcp->Process() 
 		    << endl;
-        if (1) cout << "scecorr=" << scecorr[0] << ", " << scecorr[1] << ", " << scecorr[2] << endl;
+        if (0) cout << "scecorr=" << scecorr[0] << ", " << scecorr[1] << ", " << scecorr[2] << endl;
 	//
 	trk_mcp_idx.push_back(mcp->TrackId());
 	trk_mcp_ntoth.push_back(nTotMcpHits);
