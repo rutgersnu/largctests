@@ -91,9 +91,9 @@ void TrackSplitter::produce(art::Event & e)
   auto outputPFVxAssn = std::make_unique<art::Assns<recob::PFParticle, recob::Vertex> >();
   auto outputClHtAssn = std::make_unique<art::Assns<recob::Cluster, recob::Hit> >();
   //
-  art::PtrMaker<recob::Cluster> makeClusterPtr(e, *this);
-  art::PtrMaker<recob::Track> makeTrackPtr(e, *this);
-  art::PtrMaker<recob::PFParticle> makePFParticlePtr(e, *this);
+  art::PtrMaker<recob::Cluster> makeClusterPtr(e);
+  art::PtrMaker<recob::Track> makeTrackPtr(e);
+  art::PtrMaker<recob::PFParticle> makePFParticlePtr(e);
   //
   art::ValidHandle<std::vector<recob::PFParticle> > inputPFParticle = e.getValidHandle<std::vector<recob::PFParticle> >(pfParticleInputTag);
   std::unique_ptr<art::FindManyP<recob::Track> >  assocTracks = std::unique_ptr<art::FindManyP<recob::Track> >(new art::FindManyP<recob::Track>(inputPFParticle, e, pfParticleInputTag));

@@ -63,9 +63,12 @@ public:
 
 private:
   //
+  std::string inputPfpLabel;
   std::string inputTracksLabel;
   unsigned int minHits;
-  int selectPdgCode;
+  int selectPdgCodeMC;
+  int selectPdgCodeTK;
+  bool requireMatchingPdg;
   //
   TH1F* NumberTrajectoryPoints;
   TH1F* CountValidPoints;
@@ -73,6 +76,8 @@ private:
   TH1F* Length;
   TH1F* dLength;
   TH1F* dLengthRel;
+  TH1F* dLengthCont;
+  TH1F* dLengthRelCont;
   TH1F* Chi2;
   TH1F* Chi2PerNdof;
   TH1F* Ndof;
@@ -81,7 +86,6 @@ private:
   TH1F* Phi;
   TH1F* ZenithAngle;
   TH1F* AzimuthAngle;
-  TH1F* NumberCovariance;
   //
   TH1F* dx_assoc;
   TH1F* dy_assoc;
@@ -159,9 +163,12 @@ private:
 
 TrackingPerformance::TrackingPerformance(fhicl::ParameterSet const & p)
   : EDAnalyzer(p)
+  , inputPfpLabel(p.get<std::string>("inputPfpLabel"))
   , inputTracksLabel(p.get<std::string>("inputTracksLabel"))
   , minHits(p.get<unsigned int>("minHits"))
-  , selectPdgCode(p.get<int>("selectPdgCode"))
+  , selectPdgCodeMC(p.get<int>("selectPdgCodeMC"))
+  , selectPdgCodeTK(p.get<int>("selectPdgCodeTK"))
+  , requireMatchingPdg(p.get<bool>("requireMatchingPdg"))
 {}
 
 void TrackingPerformance::beginJob()
@@ -174,6 +181,8 @@ void TrackingPerformance::beginJob()
   Length                 = tfs->make<TH1F>("Length                ","Length                ", 100,  0, 500);
   dLength                = tfs->make<TH1F>("dLength               ","dLength               ", 100,-100,100);
   dLengthRel             = tfs->make<TH1F>("dLengthRel            ","dLengthRel            ", 100, -1., 1.);
+  dLengthCont            = tfs->make<TH1F>("dLengthCont           ","dLengthCont           ", 100,-100,100);
+  dLengthRelCont         = tfs->make<TH1F>("dLengthRelCont        ","dLengthRelCont        ", 100, -1., 1.);
   Chi2                   = tfs->make<TH1F>("Chi2                  ","Chi2                  ", 100,  0, 100);
   Chi2PerNdof            = tfs->make<TH1F>("Chi2PerNdof           ","Chi2PerNdof           ", 100,  0,  10);
   Ndof                   = tfs->make<TH1F>("Ndof                  ","Ndof                  ", 100, 0, 2500);
@@ -182,7 +191,6 @@ void TrackingPerformance::beginJob()
   Phi                    = tfs->make<TH1F>("Phi                   ","Phi                   ",  66,-3.3,3.3);
   ZenithAngle            = tfs->make<TH1F>("ZenithAngle           ","ZenithAngle           ",  66,  0, 3.3);
   AzimuthAngle           = tfs->make<TH1F>("AzimuthAngle          ","AzimuthAngle          ",  66,-3.3,3.3);
-  NumberCovariance       = tfs->make<TH1F>("NumberCovariance      ","NumberCovariance      ",  10, 0,   10);
   //
   dx_assoc           = tfs->make<TH1F>("dx_assoc          ","dx_assoc          ",100,-2.5,2.5);
   dy_assoc           = tfs->make<TH1F>("dy_assoc          ","dy_assoc          ",100,-2.5,2.5);
@@ -267,7 +275,7 @@ void TrackingPerformance::analyze(art::Event const & e)
   detinfo::DetectorClocks const* detClocks = lar::providerFrom<detinfo::DetectorClocksService>();
   auto const* SCE = lar::providerFrom<spacecharge::SpaceChargeService>();
   //
-  const auto& inputPFParticle = e.getValidHandle<vector<PFParticle> >("pandora");
+  const auto& inputPFParticle = e.getValidHandle<vector<PFParticle> >(inputPfpLabel);
   auto assocTracks = unique_ptr<art::FindManyP<Track> >(new art::FindManyP<Track>(inputPFParticle, e, inputTracksLabel));
   art::Assns<recob::Track, recob::Hit> tkHitsAssn = *e.getValidHandle<art::Assns<recob::Track, recob::Hit> >(inputTracksLabel);
   const auto& trackHitsGroups = util::associated_groups(tkHitsAssn);
@@ -277,37 +285,42 @@ void TrackingPerformance::analyze(art::Event const & e)
   auto const& mctruth = *e.getValidHandle<std::vector<simb::MCTruth> >("generator");
   //
   const auto& mcsmom = *e.getValidHandle<vector<MCSFitResult> >("pandoraMCSMu");
-  const std::vector<anab::CosmicTag>* cont = e.getValidHandle<std::vector<anab::CosmicTag> >("pandoratag").product();
+  const std::vector<anab::CosmicTag>* cont = e.getValidHandle<std::vector<anab::CosmicTag> >("pandoraContTag").product();
 
-  Point_t nuvtx(mctruth[0].GetNeutrino().Nu().Position().X(),mctruth[0].GetNeutrino().Nu().Position().Y(),mctruth[0].GetNeutrino().Nu().Position().Z());
-  if (0) std::cout << "nu vtx=" << nuvtx << " with daughters=" << mctruth[0].GetNeutrino().Nu().NumberDaughters() << std::endl;
-  for (int i=0; i<mctruth[0].NParticles(); ++i) {
-    if (mctruth[0].GetParticle(i).StatusCode()!=1) continue;
-    if (0) cout << "part pdgid=" << mctruth[0].GetParticle(i).PdgCode() << " pos=(" << mctruth[0].GetParticle(i).Vx() << "," << mctruth[0].GetParticle(i).Vy() << "," << mctruth[0].GetParticle(i).Vz() << ") dir=(" << mctruth[0].GetParticle(i).Px()/mctruth[0].GetParticle(i).P() << "," << mctruth[0].GetParticle(i).Py()/mctruth[0].GetParticle(i).P() << "," << mctruth[0].GetParticle(i).Pz()/mctruth[0].GetParticle(i).P() << ") p=" << mctruth[0].GetParticle(i).P() << " status=" << mctruth[0].GetParticle(i).StatusCode() << " process=" << mctruth[0].GetParticle(i).Process() << endl;
+  bool isNuSim = false;
+  
+  Point_t nuvtx(0,0,0);
+  if (mctruth[0].NeutrinoSet()) {
+    isNuSim = true;
+    nuvtx = Point_t(mctruth[0].GetNeutrino().Nu().Position().X(),mctruth[0].GetNeutrino().Nu().Position().Y(),mctruth[0].GetNeutrino().Nu().Position().Z());
+    if (0) std::cout << "nu vtx=" << nuvtx << " with daughters=" << mctruth[0].GetNeutrino().Nu().NumberDaughters() << std::endl;
+    for (int i=0; i<mctruth[0].NParticles(); ++i) {
+      if (mctruth[0].GetParticle(i).StatusCode()!=1) continue;
+      if (0) cout << "part pdgid=" << mctruth[0].GetParticle(i).PdgCode() << " pos=(" << mctruth[0].GetParticle(i).Vx() << "," << mctruth[0].GetParticle(i).Vy() << "," << mctruth[0].GetParticle(i).Vz() << ") dir=(" << mctruth[0].GetParticle(i).Px()/mctruth[0].GetParticle(i).P() << "," << mctruth[0].GetParticle(i).Py()/mctruth[0].GetParticle(i).P() << "," << mctruth[0].GetParticle(i).Pz()/mctruth[0].GetParticle(i).P() << ") p=" << mctruth[0].GetParticle(i).P() << " status=" << mctruth[0].GetParticle(i).StatusCode() << " process=" << mctruth[0].GetParticle(i).Process() << endl;
+    }
+  } else {
+    nuvtx = Point_t(mctruth[0].GetParticle(0).Position().X(),mctruth[0].GetParticle(0).Position().Y(),mctruth[0].GetParticle(0).Position().Z());
+    if (0) cout << "part pdgid=" << mctruth[0].GetParticle(0).PdgCode() << " pos=(" << mctruth[0].GetParticle(0).Vx() << "," << mctruth[0].GetParticle(0).Vy() << "," << mctruth[0].GetParticle(0).Vz() << ") dir=(" << mctruth[0].GetParticle(0).Px()/mctruth[0].GetParticle(0).P() << "," << mctruth[0].GetParticle(0).Py()/mctruth[0].GetParticle(0).P() << "," << mctruth[0].GetParticle(0).Pz()/mctruth[0].GetParticle(0).P() << ") p=" << mctruth[0].GetParticle(0).P() << " status=" << mctruth[0].GetParticle(0).StatusCode() << " process=" << mctruth[0].GetParticle(0).Process() << endl;
   }
 
   for (size_t iPF = 0; iPF < inputPFParticle->size(); ++iPF) {
     art::Ptr<PFParticle> pfp(inputPFParticle, iPF);
-    if (pfp->IsPrimary()==false && pfp->PdgCode()!=12 && pfp->PdgCode()!=14) continue;
+    if (pfp->IsPrimary()==false) continue;
+    if (isNuSim && pfp->PdgCode()!=12 && pfp->PdgCode()!=14) continue;
     if (0) std::cout << "pfp#" << iPF << " PdgCode=" << pfp->PdgCode()
 	      << " IsPrimary=" << pfp->IsPrimary()
 	      << " NumDaughters=" << pfp->NumDaughters()
 	      << std::endl;
-    auto& pfd = pfp->Daughters();
+    auto pfd = pfp->Daughters();
+    if (!isNuSim) pfd.push_back(iPF); //include also self in case the primary is not a neutrino
     for (auto ipfd : pfd) {
       vector< art::Ptr<Track> > pftracks = assocTracks->at(ipfd);
       art::Ptr<PFParticle> pfpd(inputPFParticle, ipfd);
       if (0) cout << "pfp id=" << ipfd << " pdg=" << pfpd->PdgCode() << endl;
       for (auto t : pftracks) {
 	//
-	// fixme!!!!
-	// if (selectPdgCode!=-1 && std::abs(t->ParticleId())!=selectPdgCode) {
-	//   if (0) cout << "track has not the selected pdgCode but=" << t->ParticleId() << endl;
-	//   continue;
-	// }
-	nHits->Fill(t->CountValidPoints());
-	if (t->CountValidPoints()<minHits) {
-	  if (0) cout << "track has only npoints=" << t->CountValidPoints() << endl;
+	if (selectPdgCodeTK!=-1 && std::abs(t->ParticleId())!=selectPdgCodeTK) {
+	  if (0) cout << "track has not the selected pdgCode=" << selectPdgCodeTK << " but=" << t->ParticleId() << endl;
 	  continue;
 	}
 	//
@@ -322,14 +335,11 @@ void TrackingPerformance::analyze(art::Event const & e)
 	}
 	art::Ptr<simb::MCParticle> mcp = getAssocMCParticle(validtrkhits,hittruth);
 	if (mcp.isNull()) continue;
-	int nFoundMcpHits = nHitsFromMCParticle(mcp.key(),validtrkhits,hittruth);
-	std::vector<art::Ptr<recob::Hit> > gaushits;
-	for (size_t ih=0;ih<inputHits->size();ih++) gaushits.push_back({inputHits,ih});
-	int nTotMcpHits = nHitsFromMCParticle(mcp.key(),gaushits,hittruth);
-	// std::cout << "nValidHits=" << validtrkhits.size() << " nFoundMcpHits=" << nFoundMcpHits << " nTotMcpHits=" << nTotMcpHits
-	// 	  << " completeness=" << float(nFoundMcpHits)/float(nTotMcpHits) << " purity=" << float(nFoundMcpHits)/float(validtrkhits.size()) << std::endl;
-	purity->Fill(float(nFoundMcpHits)/float(validtrkhits.size()));
-	completeness->Fill(float(nFoundMcpHits)/float(nTotMcpHits));
+	//
+	if (selectPdgCodeMC!=-1 && selectPdgCodeMC!=std::abs(mcp->PdgCode())) {
+	  if (0) cout << "matching MC Particle has not the selected pdgCode=" << selectPdgCodeMC << " but=" << mcp->PdgCode() << endl;
+	  continue;
+	}
 	//
 	dRVtxMC->Fill((nuvtx-Point_t(mcp->Vx(),mcp->Vy(),mcp->Vz())).R());
 	if (0) cout << "MCParticle status=" << mcp->StatusCode() << " Mother=" << mcp->Mother() << " Process=" << mcp->Process() /*<< " MotherPdgCode=" << (mcp->Mother()>=0 ? mctruth[0].GetParticle(mcp->Mother()).PdgCode() : 0)*/ << endl;
@@ -343,10 +353,10 @@ void TrackingPerformance::analyze(art::Event const & e)
 	//
 	auto scecorr = SCE->GetPosOffsets(geo::Point_t(mcp->Vx(),mcp->Vy(),mcp->Vz()));
 	double g4Ticks = detClocks->TPCG4Time2Tick(mcp->T())+theDetector->GetXTicksOffset(0,0,0)-theDetector->TriggerOffset();
-	double xOffset = theDetector->ConvertTicksToX(g4Ticks, 0, 0, 0)-scecorr.X();
+        double xOffset = theDetector->ConvertTicksToX(g4Ticks, 0, 0, 0)+scecorr.X()+0.6;// factor 0.6 to compensate for inter-plane distance
 	double yOffset = scecorr.Y();
 	double zOffset = scecorr.Z();
-	Point_t mcpos(mcp->Vx()+xOffset,mcp->Vy()+yOffset,mcp->Vz()+zOffset);
+        Point_t mcpos( (mcp->Vx()+xOffset)*(1.114/1.098),mcp->Vy()+yOffset,mcp->Vz()+zOffset);//fixme: factor 1.114/1.098 to correct for drift velocity differences
 	Vector_t mcdir(mcp->Px()/mcp->P(),mcp->Py()/mcp->P(),mcp->Pz()/mcp->P());
 	//
 	dotpdir->Fill(redir.Dot(mcdir));
@@ -369,22 +379,43 @@ void TrackingPerformance::analyze(art::Event const & e)
 	else if (std::abs(t->ParticleId())==2212) pidr = 4;
 	else if (std::abs(t->ParticleId())==11)   pidr = 5;
 	ptype_rec_vs_mc->Fill(pidmc,pidr);
-	if (selectPdgCode!=-1 && std::abs(t->ParticleId())!=std::abs(mcp->PdgCode())) {
+	if (requireMatchingPdg && std::abs(t->ParticleId())!=std::abs(mcp->PdgCode())) {
 	  if (0) cout << "track has not the same pdgCode as MC:" << t->ParticleId() << " vs " << mcp->PdgCode() << endl;
+	  continue;
+	}
+	//
+	nHits->Fill(t->CountValidPoints());
+	if (t->CountValidPoints()<minHits) {
+	  if (0) cout << "track has only npoints=" << t->CountValidPoints() << endl;
 	  continue;
 	}
 	//
 	if (0) cout << "trk pos=" << t->Start() << " dir=" << t->StartDirection() << " p=" << t->VertexMomentum() << " pdg=" << t->ParticleId() << endl;
 	if (0) cout << "mcp pos=(" << mcp->Vx() << "," << mcp->Vy() << "," << mcp->Vz() << ") dir=(" << mcp->Px()/mcp->P() << "," << mcp->Py()/mcp->P() << "," << mcp->Pz()/mcp->P() << ") p=" << mcp->P() << " pdg=" << mcp->PdgCode() << " mom=" << mcp->Mother() << " id=" << mcp->TrackId() << " proc=" << mcp->Process() << endl;
 	//
+        // Most plots should be filled below here!
+        //
+        bool isContained = ((inputTracksLabel.find("Shower")!=std::string::npos) ? false : cont->at(t->ID()).CosmicType()==anab::kNotTagged);
+        int nFoundMcpHits = nHitsFromMCParticle(mcp.key(),validtrkhits,hittruth);
+        std::vector<art::Ptr<recob::Hit> > gaushits;
+        for (size_t ih=0;ih<inputHits->size();ih++) gaushits.push_back({inputHits,ih});
+        int nTotMcpHits = nHitsFromMCParticle(mcp.key(),gaushits,hittruth);
+        // std::cout << "nValidHits=" << validtrkhits.size() << " nFoundMcpHits=" << nFoundMcpHits << " nTotMcpHits=" << nTotMcpHits
+        //        << " completeness=" << float(nFoundMcpHits)/float(nTotMcpHits) << " purity=" << float(nFoundMcpHits)/float(validtrkhits.size()) << std::endl;
+        purity->Fill(float(nFoundMcpHits)/float(validtrkhits.size()));
+        completeness->Fill(float(nFoundMcpHits)/float(nTotMcpHits));
+        //
 	NumberTrajectoryPoints->Fill(t->NumberTrajectoryPoints());
 	CountValidPoints->Fill(t->CountValidPoints());
 	HasMomentum->Fill(t->HasMomentum());
 	auto rl = t->Length();
 	auto mcl = mcp->Trajectory().TotalLength();
-	Length->Fill(rl);
 	dLength->Fill(rl-mcl);
 	dLengthRel->Fill( (rl-mcl)/mcl );
+	if (isContained) {
+	  dLengthCont->Fill(rl);
+	  dLengthRelCont->Fill( (rl-mcl)/mcl );
+	}
 	Chi2->Fill(t->Chi2());
 	Chi2PerNdof->Fill(t->Chi2PerNdof());
 	Ndof->Fill(t->Ndof());
@@ -398,7 +429,6 @@ void TrackingPerformance::analyze(art::Event const & e)
 	Phi->Fill(t->Phi());
 	ZenithAngle->Fill(t->ZenithAngle());
 	AzimuthAngle->Fill(t->AzimuthAngle());
-	NumberCovariance->Fill(t->NumberCovariance());
 	deltaP->Fill( t->StartMomentum()-mcp->P() );
 	deltaPrel->Fill( (t->StartMomentum()-mcp->P())/mcp->P() );
 	mom_vs_truemom->Fill(mcp->P(),t->StartMomentum());
@@ -420,7 +450,7 @@ void TrackingPerformance::analyze(art::Event const & e)
 	duy_assoc->Fill(redir.Y()-mcdir.Y());
 	duz_assoc->Fill(redir.Z()-mcdir.Z());
 	//
-	trkf::TrackStatePropagator prop(1.0, 0.1, 10, 10., 0.01, false);
+	trkf::TrackStatePropagator prop(1.0, 0.1, 100, 10., 0.01, false);
 	recob::tracking::Plane mcplane(mcpos,mcdir);
 	recob::tracking::Plane tkplane(repos,redir);
 	trkf::TrackState tkstart(t->VertexParametersLocal5D(), t->VertexCovarianceLocal5D(), tkplane, true, t->ParticleId());
@@ -475,7 +505,7 @@ void TrackingPerformance::analyze(art::Event const & e)
           if (0) std::cout << "muon with mc mom=" << mcp->P() << " mcs=" << mcs.bestMomentum() << std::endl;
           mu_mcsmom_vs_truemom->Fill(mcp->P(),mcs.bestMomentum());
 	  //
-	  bool isContained = cont->at(t->ID()).CosmicType()==anab::kNotTagged;
+          //std::cout << "track key=" << t.key() << " ID=" << t->ID() << " ctk=" << cont->at(t.key()).CosmicType() << " cti=" << cont->at(t->ID()).CosmicType() << " nt=" << anab::kNotTagged << std::endl;
           if (isContained) mu_mcsmom_vs_truemom_contained->Fill(mcp->P(),mcs.bestMomentum());
         }
       }

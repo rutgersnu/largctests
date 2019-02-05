@@ -5,7 +5,7 @@
 process_name: TrackMaker
 
 services: {
-  TFileService:           { fileName: "dummyAnalysis-pf.root" }
+  TFileService:           { fileName: "outfile_trkperf.root" }
   @table::microboone_reco_mcc8_services
   TimeTracker: { }
 } # services
@@ -28,23 +28,27 @@ outputs:{
       fileName: "test_trackMaker.root"
       module_type: "RootOutput"
       saveMemoryObjectThreshold: 0
-      outputCommands: ["drop *_*_*_*",
-      		       "keep *_gaushit_*_*",
-      		       "keep *_*_*_TrackMaker"]
+      #outputCommands: ["drop *_*_*_*",
+      #	                "keep *_gaushit_*_*",
+      #                 "keep *_*_*_TrackMaker"]
    }
 }
 
 trackingperformance: {
   module_label: TrackingPerformance
   module_type:  TrackingPerformance
+  inputPfpLabel: pandora
   inputTracksLabel: pandoraKalmanTrack
   minHits: 10
-  selectPdgCode: -1
+  selectPdgCodeTK: -1
+  selectPdgCodeMC: -1
+  requireMatchingPdg: false
 }
 
 physics: {
   producers: {
      trackproducer: @local::microboone_reco_mcc8_producers.pandoraKalmanTrack
+     pandoraContTag: @local::microboone_reco_mcc8_producers.pandoraContTag
   }
 
   analyzers: {
@@ -67,56 +71,80 @@ physics: {
 
   #ana:  [ trackingperformancePandoraMu ]
   #ana:  [ trackingperformance, trackingperformanceMu, trackingperformancePi, trackingperformanceK, trackingperformanceP ]
-  pro: [trackproducer]
-  ana:  [ trackingperformance, trackingperformanceMu, trackingperformanceP,
-          trackingperformancePandora, trackingperformancePandoraMu, trackingperformancePandoraP,
-          trackingperformanceProducer, trackingperformanceProducerMu, trackingperformanceProducerP]
+  pro: [ pandoraContTag, trackproducer]
+  ana:  [ trackingperformance, trackingperformancePandora, trackingperformanceProducer ]
+  #ana:  [ trackingperformance, trackingperformanceMu, trackingperformanceP,
+  #        trackingperformancePandora, trackingperformancePandoraMu, trackingperformancePandoraP,
+  #        trackingperformanceProducer, trackingperformanceProducerMu, trackingperformanceProducerP]
   #stream1: [ out1 ]
 
-  #trigger_paths: [ pro ]
+  trigger_paths: [ pro ]
   #end_paths: [ ana, stream1 ]
   end_paths: [ ana ]
   #end_paths: [ stream1 ]
 }
 
-physics.analyzers.trackingperformanceMu.selectPdgCode: 13
-physics.analyzers.trackingperformancePi.selectPdgCode: 211
-physics.analyzers.trackingperformanceK.selectPdgCode: 321
-physics.analyzers.trackingperformanceP.selectPdgCode: 2212
+physics.analyzers.trackingperformanceMu.selectPdgCodeMC: 13
+physics.analyzers.trackingperformancePi.selectPdgCodeMC: 211
+physics.analyzers.trackingperformanceK.selectPdgCodeMC: 321
+physics.analyzers.trackingperformanceP.selectPdgCodeMC: 2212
 
-physics.analyzers.trackingperformancePandoraMu.selectPdgCode: 13
-physics.analyzers.trackingperformancePandoraPi.selectPdgCode: 211
-physics.analyzers.trackingperformancePandoraK.selectPdgCode: 321
-physics.analyzers.trackingperformancePandoraP.selectPdgCode: 2212
-physics.analyzers.trackingperformancePandora.inputTracksLabel: pandora
-physics.analyzers.trackingperformancePandoraMu.inputTracksLabel: pandora
-physics.analyzers.trackingperformancePandoraPi.inputTracksLabel: pandora
-physics.analyzers.trackingperformancePandoraK.inputTracksLabel: pandora
-physics.analyzers.trackingperformancePandoraP.inputTracksLabel: pandora
+physics.analyzers.trackingperformancePandoraMu.selectPdgCodeMC: 13
+physics.analyzers.trackingperformancePandoraPi.selectPdgCodeMC: 211
+physics.analyzers.trackingperformancePandoraK.selectPdgCodeMC: 321
+physics.analyzers.trackingperformancePandoraP.selectPdgCodeMC: 2212
+physics.analyzers.trackingperformancePandora.inputPfpLabel: pandoraPatRec
+physics.analyzers.trackingperformancePandoraMu.inputPfpLabel: pandoraPatRec
+physics.analyzers.trackingperformancePandoraPi.inputPfpLabel: pandoraPatRec
+physics.analyzers.trackingperformancePandoraK.inputPfpLabel: pandoraPatRec
+physics.analyzers.trackingperformancePandoraP.inputPfpLabel: pandoraPatRec
+physics.analyzers.trackingperformancePandora.inputTracksLabel: pandoraTrack
+physics.analyzers.trackingperformancePandoraMu.inputTracksLabel: pandoraTrack
+physics.analyzers.trackingperformancePandoraPi.inputTracksLabel: pandoraTrack
+physics.analyzers.trackingperformancePandoraK.inputTracksLabel: pandoraTrack
+physics.analyzers.trackingperformancePandoraP.inputTracksLabel: pandoraTrack
 
-physics.analyzers.trackingperformanceProducerMu.selectPdgCode: 13
-physics.analyzers.trackingperformanceProducerPi.selectPdgCode: 211
-physics.analyzers.trackingperformanceProducerK.selectPdgCode: 321
-physics.analyzers.trackingperformanceProducerP.selectPdgCode: 2212
+physics.analyzers.trackingperformanceProducerMu.selectPdgCodeMC: 13
+physics.analyzers.trackingperformanceProducerPi.selectPdgCodeMC: 211
+physics.analyzers.trackingperformanceProducerK.selectPdgCodeMC: 321
+physics.analyzers.trackingperformanceProducerP.selectPdgCodeMC: 2212
+physics.analyzers.trackingperformanceProducer.inputPfpLabel: pandoraPatRec
+physics.analyzers.trackingperformanceProducerMu.inputPfpLabel: pandoraPatRec
+physics.analyzers.trackingperformanceProducerPi.inputPfpLabel: pandoraPatRec
+physics.analyzers.trackingperformanceProducerK.inputPfpLabel: pandoraPatRec
+physics.analyzers.trackingperformanceProducerP.inputPfpLabel: pandoraPatRec
 physics.analyzers.trackingperformanceProducer.inputTracksLabel: trackproducer
 physics.analyzers.trackingperformanceProducerMu.inputTracksLabel: trackproducer
 physics.analyzers.trackingperformanceProducerPi.inputTracksLabel: trackproducer
 physics.analyzers.trackingperformanceProducerK.inputTracksLabel: trackproducer
 physics.analyzers.trackingperformanceProducerP.inputTracksLabel: trackproducer
 
-#physics.producers.trackproducer.trackMaker.fitter.maxChi2: 50 0.8957/0.6508
-#physics.producers.trackproducer.trackMaker.fitter.maxChi2: 25 0.8993/0.6503
-#physics.producers.trackproducer.trackMaker.fitter.maxChi2: 100 0.8936/0.6466
-#physics.producers.trackproducer.trackMaker.fitter.maxChi2: 75 0.8947/0.6484
-#physics.producers.trackproducer.trackMaker.fitter.maxChi2: -1 0.8908/0.6479
-physics.producers.trackproducer.trackMaker.fitter.skipNegProp: false
-physics.producers.trackproducer.trackMaker.fitter.maxChi2: -1
-physics.producers.trackproducer.trackMaker.fitter.maxDist: -1
-physics.producers.trackproducer.trackMaker.fitter.maxResidue: -1
+physics.producers.trackproducer.inputCollection: pandoraPatRec
+physics.producers.trackproducer.trackInputTag: pandoraTrack
+#physics.producers.trackproducer.trackMaker.fitter.dumpLevel: 1
+
+physics.producers.trackproducer.trackMaker.fitter.maxChi2: 10
+physics.producers.trackproducer.trackMaker.fitter.maxDist: 5.0 #-1
+physics.producers.trackproducer.trackMaker.fitter.maxResidue: 3.0 #1.5
+#physics.producers.trackproducer.trackMaker.fitter.maxResidueFirstHit: -1
+physics.producers.trackproducer.trackMaker.fitter.negDistTolerance: -0.01
+
+#physics.producers.trackproducer.trackMaker.fitter.skipNegProp: true
+#physics.producers.trackproducer.trackMaker.fitter.sortOutputHitsMinLength: true
+#physics.producers.trackproducer.trackMaker.fitter.cleanZigzag: false
+#physics.producers.trackproducer.trackMaker.fitter.maxDist:  10
+#physics.producers.trackproducer.trackMaker.fitter.rejectHitsNegativeGOF: false
+#physics.producers.trackproducer.trackMaker.fitter.rejectHighMultHits: true
+#physics.producers.trackproducer.trackMaker.fitter.hitErr2ScaleFact: 2
+#physics.producers.trackproducer.trackMaker.fitter.sortHitsByWire: true
+#physics.producers.trackproducer.trackMaker.fitter.pickBestHitOnWire: true
+#physics.producers.trackproducer.trackMaker.fitter.tryBothDirs: true
+#physics.producers.trackproducer.trackMaker.fitter.tryNoSkipWhenFails: false
+#physics.producers.trackproducer.trackMaker.fitter.pickBestHitOnWire: true
+#physics.producers.trackproducer.trackMaker.fitter.tryBothDirs: true
 
 services.SpaceCharge.EnableCorrSCE: true
 services.SpaceCharge.EnableSimEfieldSCE: true
 services.SpaceCharge.EnableSimSpatialSCE: true
 services.SpaceCharge.RepresentationType: "Voxelized"
 services.SpaceCharge.InputFilename: "SpaceCharge/dispOutput_MicroBooNE_E273.root"
-services.SpaceCharge.CalibrationInputFilename: "SpaceCharge/dispOutput_MicroBooNE_E273.root"

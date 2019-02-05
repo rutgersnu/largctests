@@ -79,7 +79,6 @@ private:
   TH1F* all_Phi;
   TH1F* all_ZenithAngle;
   TH1F* all_AzimuthAngle;
-  TH1F* all_NumberCovariance;
   //
   TH1F* all_hitPlane0Frac;
   TH1F* all_hitPlane1Frac;
@@ -104,7 +103,6 @@ private:
   TH1F* Phi;
   TH1F* ZenithAngle;
   TH1F* AzimuthAngle;
-  TH1F* NumberCovariance;
   //
   TH1F* dx_assoc;
   TH1F* dy_assoc;
@@ -200,7 +198,6 @@ void TrackValidation::beginJob()
   all_Phi                    = tfs->make<TH1F>("all_Phi                   ","all_Phi                   ",  66,-3.3,3.3);
   all_ZenithAngle            = tfs->make<TH1F>("all_ZenithAngle           ","all_ZenithAngle           ",  66,  0, 3.3);
   all_AzimuthAngle           = tfs->make<TH1F>("all_AzimuthAngle          ","all_AzimuthAngle          ",  66,-3.3,3.3);
-  all_NumberCovariance       = tfs->make<TH1F>("all_NumberCovariance      ","all_NumberCovariance      ",  10, 0,   10);
   //
   all_hitPlane0Frac = tfs->make<TH1F>("all_hitPlane0Frac","all_hitPlane0Frac",101,0,1.01);
   all_hitPlane1Frac = tfs->make<TH1F>("all_hitPlane1Frac","all_hitPlane1Frac",101,0,1.01);
@@ -225,7 +222,6 @@ void TrackValidation::beginJob()
   Phi                    = tfs->make<TH1F>("Phi                   ","Phi                   ",  66,-3.3,3.3);
   ZenithAngle            = tfs->make<TH1F>("ZenithAngle           ","ZenithAngle           ",  66,  0, 3.3);
   AzimuthAngle           = tfs->make<TH1F>("AzimuthAngle          ","AzimuthAngle          ",  66,-3.3,3.3);
-  NumberCovariance       = tfs->make<TH1F>("NumberCovariance      ","NumberCovariance      ",  10, 0,   10);
   //
   dx_assoc           = tfs->make<TH1F>("dx_assoc          ","dx_assoc          ",100,-2.5,2.5);
   dy_assoc           = tfs->make<TH1F>("dy_assoc          ","dy_assoc          ",100,-2.5,2.5);
@@ -365,7 +361,6 @@ void TrackValidation::analyze(art::Event const & e)
     all_Phi                   ->Fill(track.Phi                   ());
     all_ZenithAngle           ->Fill(track.ZenithAngle           ());
     all_AzimuthAngle          ->Fill(track.AzimuthAngle          ());
-    all_NumberCovariance      ->Fill(track.NumberCovariance      ());
     //
     const auto start = track.Trajectory().Start();
     const auto end   = track.Trajectory().End();
@@ -539,7 +534,6 @@ void TrackValidation::analyze(art::Event const & e)
   Phi                   ->Fill(retk->Phi                   ());
   ZenithAngle           ->Fill(retk->ZenithAngle           ());
   AzimuthAngle          ->Fill(retk->AzimuthAngle          ());
-  NumberCovariance      ->Fill(retk->NumberCovariance      ());
   //
   dp0_prop_assoc->Fill( prpar(0)-mcpar(0) );
   dp1_prop_assoc->Fill( prpar(1)-mcpar(1) );
@@ -560,7 +554,7 @@ void TrackValidation::analyze(art::Event const & e)
   duyr_prop_assoc->Fill( (prdir.Y()-mcdir.Y())/mcdir.Y() );
   duzr_prop_assoc->Fill( (prdir.Z()-mcdir.Z())/mcdir.Z() );
   //
-  if (retk->NumberCovariance()>1) {
+  // if (retk->NumberCovariance()>1) {
     dp0_pull_prop_assoc->Fill( ( prpar(0)-mcpar(0) )/sqrt(prcov(0,0)) );
     dp1_pull_prop_assoc->Fill( ( prpar(1)-mcpar(1) )/sqrt(prcov(1,1)) );
     dp2_pull_prop_assoc->Fill( ( prpar(2)-mcpar(2) )/sqrt(prcov(2,2)) );
@@ -599,7 +593,7 @@ void TrackValidation::analyze(art::Event const & e)
     zenith_vs_prop_pullX->Fill( xpull, retk->ZenithAngle() );
     azimuth_vs_prop_pullX->Fill( xpull, retk->AzimuthAngle() );
     //
-  }
+  // }
   //
   dLength->Fill(retk->Length()-mclen);
   dLengthRel->Fill( (retk->Length()-mclen)/mclen );

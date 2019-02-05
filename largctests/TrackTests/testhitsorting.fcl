@@ -1,0 +1,27 @@
+process_name: TestHitSorting
+
+source:
+{
+  module_type: RootInput
+  firstEvent : 1
+  maxEvents:  -1
+}
+
+source.inputCommands:        [ "keep *_*_*_*", "drop *_opfiltercommon__McRecoStage1" ]
+
+testhitsorting: {
+  module_label: TestHitSorting
+  module_type:  TestHitSorting
+}
+
+physics: {
+  producers: {
+  }
+
+  analyzers: {
+    testhitsorting:   @local::testhitsorting
+  } # analyzers
+
+  ana:  [ testhitsorting ]
+  end_paths: [ ana ]
+}

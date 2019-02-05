@@ -56,8 +56,23 @@ services.RawDrawingOptions.RawDataLabel:                  "wcNoiseFilter"
 services.RawDrawingOptions.MinimumSignal:                 10
 services.RawDrawingOptions.DrawRawDataOrCalibWires:       2
 
-services.RecoDrawingOptions.DrawTrackTrajectoryPoints: 1
-services.RecoDrawingOptions.DrawTracks: 1
-services.RecoDrawingOptions.TrackModuleLabels: ["pandoraNuKalmanTrack"]
-services.RecoDrawingOptions.DrawVertices: 1
+services.RecoDrawingOptions.DrawHits: 0
+services.RecoDrawingOptions.WireModuleLabels: ["butcher"]
+
+services.RecoDrawingOptions.DrawTrackSegments: 1
+services.RecoDrawingOptions.DrawTrackTrajectoryPoints: 0
+services.RecoDrawingOptions.DrawTracks: 2
+#services.RecoDrawingOptions.TrackModuleLabels: ["pandoraKalmanShower"]
+services.RecoDrawingOptions.TrackModuleLabels: ["trackShowerProducer"]
+#services.RecoDrawingOptions.TrackModuleLabels: ["trackproducer"]
+#services.RecoDrawingOptions.TrackModuleLabels: ["pandoraTrack"]
+
+services.RecoDrawingOptions.DrawVertices: 0
 services.RecoDrawingOptions.VertexModuleLabels: ["pandoraNuKTVertex"]
+
+services.RecoDrawingOptions.DrawShowers: 1
+services.RecoDrawingOptions.ShowerModuleLabels: ["pandora"]
+
+services.SimulationDrawingOptions.ShowMCTruthVectors: 1
+services.SimulationDrawingOptions.ShowMCTruthText: true
+services.SimulationDrawingOptions.ShowMCTruthColors: false

@@ -13,7 +13,7 @@
 #include "art/Framework/Principal/Handle.h"
 #include "art/Framework/Principal/Run.h"
 #include "art/Framework/Principal/SubRun.h"
-#include "art/Framework/Services/System/TriggerNamesService.h"
+// #include "art/Framework/Services/System/TriggerNamesService.h"
 #include "canvas/Utilities/InputTag.h"
 #include "fhiclcpp/ParameterSet.h"
 #include "messagefacility/MessageLogger/MessageLogger.h"
@@ -396,14 +396,14 @@ void SplitVertexNtuplizer::analyze(art::Event const & e)
   using namespace std;
   using namespace recob::tracking;
   //
-  art::ValidHandle<art::TriggerResults> filter = e.getValidHandle<art::TriggerResults>("TriggerResults");
-  size_t ntp =  art::ServiceHandle<art::TriggerNamesService>()->size();
-  size_t ftp = ntp;
-  for (size_t itp=0;itp<ntp;itp++) {
-    //std::cout << art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp) << " " << filter->at(itp).accept()  << std::endl;
-    if (art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp)=="filt") ftp = itp; 
-  }
-  assert(ftp<ntp);
+  // art::ValidHandle<art::TriggerResults> filter = e.getValidHandle<art::TriggerResults>("TriggerResults");
+  // size_t ntp =  art::ServiceHandle<art::TriggerNamesService>()->size();
+  // size_t ftp = ntp;
+  // for (size_t itp=0;itp<ntp;itp++) {
+  //   //std::cout << art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp) << " " << filter->at(itp).accept()  << std::endl;
+  //   if (art::ServiceHandle<art::TriggerNamesService>()->getTrigPath(itp)=="filt") ftp = itp; 
+  // }
+  // assert(ftp<ntp);
   //
   detinfo::DetectorProperties const* theDetector = lar::providerFrom<detinfo::DetectorPropertiesService>();
   detinfo::DetectorClocks const* detClocks = lar::providerFrom<detinfo::DetectorClocksService>();
@@ -441,7 +441,7 @@ void SplitVertexNtuplizer::analyze(art::Event const & e)
     run = e.run();
     subrun = e.subRun();
     eventid = e.event();
-    passSelII = filter->at(ftp).accept();
+    // passSelII = filter->at(ftp).accept();
 
     auto vtx  = VertexVec[0];
     if (0) std::cout << "original pos=" << vtx->position() << std::endl;

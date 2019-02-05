@@ -1,0 +1,107 @@
+#include "services_microboone.fcl"
+#include "time_memory_tracker_microboone.fcl"
+#include "reco_uboone_mcc9_8.fcl"
+#include "shrreco3d.fcl"
+
+process_name: ShowerPerf
+
+services: {
+  TFileService:           { fileName: "outfile_shwrperf.root" }
+  @table::microboone_reco_mcc8_services
+  TimeTracker: { }
+} # services
+services.MemoryPeakReporter: @erase
+
+source:
+{
+  module_type: RootInput
+  firstEvent : 1
+  maxEvents:  -1
+}
+
+source.inputCommands:        [ "keep *_*_*_*", "drop *_opfiltercommon__McRecoStage1" ]
+
+outputs:{
+   out1: {
+      compressionLevel: 1
+      dataTier: "reconstructed"
+      fastCloning: false
+      fileName: "test_trackMaker.root"
+      module_type: "RootOutput"
+      saveMemoryObjectThreshold: 0
+      outputCommands: ["drop *_*_*_*",
+      		       "keep *_gaushit_*_*",
+      		       "keep *_*_*_ShowerPerf"]
+   }
+}
+
+showerperformance: {
+  module_label: ShowerPerformance
+  module_type:  ShowerPerformance
+  inputShowerLabel: pandora
+  inputTrackLabel: trackShowerProducer
+}
+
+physics: {
+  producers: {
+    showerreco3dpandora : @local::ShrReco3DPandora
+    trackShowerProducer: @local::microboone_reco_mcc8_producers.pandoraKalmanShower
+    trackShowerProducer2: @local::microboone_reco_mcc8_producers.pandoraKalmanShower
+  }
+
+  analyzers: {
+    showerperformancePandora:   @local::showerperformance
+    showerperformanceCaratelli:   @local::showerperformance
+  } # analyzers
+
+  #pro: [ showerreco3dpandora, trackShowerProducer, trackShowerProducer2 ]
+  #ana:  [ showerperformancePandora, showerperformanceCaratelli ]
+  pro: [ trackShowerProducer ]
+  ana:  [ showerperformancePandora ]
+  #stream1: [ out1 ]
+
+  trigger_paths: [ pro ]
+  #end_paths: [ ana, stream1 ]
+  end_paths: [ ana ]
+  #end_paths: [ stream1 ]
+}
+
+physics.producers.showerreco3dpandora.BacktrackTag: "gaushitTruthMatch"
+physics.producers.showerreco3dpandora.ADCtoE: [248.2,248.2,248.2] # e-/ADC
+physics.producers.showerreco3dpandora.NeutrinoEvent: false
+
+physics.analyzers.showerperformanceCaratelli.inputShowerLabel: showerreco3dpandora
+physics.analyzers.showerperformanceCaratelli.inputTrackLabel: trackShowerProducer2
+
+physics.producers.trackShowerProducer.trackMaker.options.defaultPdgId: 11
+physics.producers.trackShowerProducer.trackMaker.fitter.skipNegProp: true
+physics.producers.trackShowerProducer.trackMaker.fitter.maxChi2: 10 #15
+physics.producers.trackShowerProducer.trackMaker.fitter.maxDist: 5.0 #5 #7.5
+physics.producers.trackShowerProducer.trackMaker.fitter.maxResidue: 3.0 #4.5
+physics.producers.trackShowerProducer.trackMaker.fitter.maxResidueFirstHit: 6.0
+physics.producers.trackShowerProducer.trackMaker.fitter.sortHitsByWire: true
+physics.producers.trackShowerProducer.trackMaker.fitter.tryNoSkipWhenFails: false
+physics.producers.trackShowerProducer.trackMaker.fitter.negDistTolerance: -0.01
+physics.producers.trackShowerProducer.trackMaker.fitter.pickBestHitOnWire: true
+#physics.producers.trackShowerProducer.trackMaker.fitter.tryBothDirs: true
+
+physics.producers.trackShowerProducer2.showerInputTag: showerreco3dpandora
+physics.producers.trackShowerProducer2.trackMaker.options.defaultPdgId: 11
+physics.producers.trackShowerProducer2.trackMaker.fitter.skipNegProp: true
+physics.producers.trackShowerProducer2.trackMaker.fitter.maxChi2: 10 #15
+physics.producers.trackShowerProducer2.trackMaker.fitter.maxDist: 5.0 #5 #7.5
+physics.producers.trackShowerProducer2.trackMaker.fitter.maxResidue: 3.0 #4.5
+physics.producers.trackShowerProducer2.trackMaker.fitter.maxResidueFirstHit: 6.0
+physics.producers.trackShowerProducer2.trackMaker.fitter.sortHitsByWire: true
+physics.producers.trackShowerProducer2.trackMaker.fitter.tryNoSkipWhenFails: false
+physics.producers.trackShowerProducer2.trackMaker.fitter.negDistTolerance: -0.01
+physics.producers.trackShowerProducer2.trackMaker.fitter.pickBestHitOnWire: true
+#physics.producers.trackShowerProducer2.trackMaker.fitter.tryBothDirs: true
+
+#physics.producers.trackShowerProducer2.trackMaker.options.defaultMomInGeV: -1 #take it from shower energy
+
+services.SpaceCharge.EnableCorrSCE: true
+services.SpaceCharge.EnableSimEfieldSCE: true
+services.SpaceCharge.EnableSimSpatialSCE: true
+services.SpaceCharge.RepresentationType: "Voxelized"
+services.SpaceCharge.InputFilename: "SpaceCharge/dispOutput_MicroBooNE_E273.root"

@@ -113,8 +113,8 @@ void VertexSplitter::produce(art::Event & e)
   const auto& inputVertexColl = e.getValidHandle<vector<recob::Vertex> >(vertexInputTag);
   auto assocTracks = unique_ptr<art::FindManyP<recob::Track, recob::VertexAssnMeta> >(new art::FindManyP<recob::Track, recob::VertexAssnMeta>(inputVertexColl, e, vertexInputTag));
 
-  art::PtrMaker<recob::Vertex> vtxPtrMaker1(e, *this, "even");
-  art::PtrMaker<recob::Vertex> vtxPtrMaker2(e, *this, "odd");
+  art::PtrMaker<recob::Vertex> vtxPtrMaker1(e, "even");
+  art::PtrMaker<recob::Vertex> vtxPtrMaker2(e, "odd");
 
   for (size_t iPF = 0; iPF < inputPFParticle->size(); ++iPF) {
     //
