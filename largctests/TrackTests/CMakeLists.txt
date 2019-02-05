@@ -20,7 +20,9 @@ art_make(
 			    ${ART_FRAMEWORK_SERVICES_OPTIONAL_TFILESERVICE_SERVICE}
 			    ${ART_FRAMEWORK_SERVICES_OPTIONAL_RANDOMNUMBERGENERATOR_SERVICE}
 			    art_Persistency_Common
+			    art_Persistency_Provenance
 			    art_Utilities
+			    art_Framework_Services_Registry
 			    canvas
 			    ${MF_MESSAGELOGGER}
 			    ${MF_UTILITIES}
