@@ -129,6 +129,27 @@ private:
   std::vector<float> trkSegEndPosX, trkSegEndPosY, trkSegEndPosZ;
   std::vector<float> trkSegDirX, trkSegDirY, trkSegDirZ;
   //
+  float trkLength_rm10;
+  float trkMom_MuFwd_rm10, trkMomErr_MuFwd_rm10, trkLL_MuFwd_rm10;
+  float trkMom_MuBwd_rm10, trkMomErr_MuBwd_rm10, trkLL_MuBwd_rm10;
+  float trkMom_Mu_rm10, trkMomErr_Mu_rm10, trkLL_Mu_rm10;
+  float trkDeltaLL_Mu_rm10;
+  int    trkIsBestFwd_Mu_rm10;
+  //
+  float trkLength_rm50;
+  float trkMom_MuFwd_rm50, trkMomErr_MuFwd_rm50, trkLL_MuFwd_rm50;
+  float trkMom_MuBwd_rm50, trkMomErr_MuBwd_rm50, trkLL_MuBwd_rm50;
+  float trkMom_Mu_rm50, trkMomErr_Mu_rm50, trkLL_Mu_rm50;
+  float trkDeltaLL_Mu_rm50;
+  int    trkIsBestFwd_Mu_rm50;
+  //
+  float trkLength_rm80;
+  float trkMom_MuFwd_rm80, trkMomErr_MuFwd_rm80, trkLL_MuFwd_rm80;
+  float trkMom_MuBwd_rm80, trkMomErr_MuBwd_rm80, trkLL_MuBwd_rm80;
+  float trkMom_Mu_rm80, trkMomErr_Mu_rm80, trkLL_Mu_rm80;
+  float trkDeltaLL_Mu_rm80;
+  int    trkIsBestFwd_Mu_rm80;
+  //
   int    trkid0;
   int    trkid1;
   int    trkid2;
@@ -235,6 +256,45 @@ void TrajectoryMCSNtuple::resetTree() {
   trkSegDirX.clear();
   trkSegDirY.clear();
   trkSegDirZ.clear();
+  //
+  trkLength_rm10 = -999;
+  trkMom_MuFwd_rm10 = -999;
+  trkMomErr_MuFwd_rm10 = -999;
+  trkLL_MuFwd_rm10 = -999;
+  trkMom_MuBwd_rm10 = -999;
+  trkMomErr_MuBwd_rm10 = -999;
+  trkLL_MuBwd_rm10 = -999;
+  trkMom_Mu_rm10 = -999;
+  trkMomErr_Mu_rm10 = -999;
+  trkLL_Mu_rm10 = -999;
+  trkDeltaLL_Mu_rm10 = -999;
+  trkIsBestFwd_Mu_rm10 = -999;
+  //
+  trkLength_rm50 = -999;
+  trkMom_MuFwd_rm50 = -999;
+  trkMomErr_MuFwd_rm50 = -999;
+  trkLL_MuFwd_rm50 = -999;
+  trkMom_MuBwd_rm50 = -999;
+  trkMomErr_MuBwd_rm50 = -999;
+  trkLL_MuBwd_rm50 = -999;
+  trkMom_Mu_rm50 = -999;
+  trkMomErr_Mu_rm50 = -999;
+  trkLL_Mu_rm50 = -999;
+  trkDeltaLL_Mu_rm50 = -999;
+  trkIsBestFwd_Mu_rm50 = -999;
+  //
+  trkLength_rm80 = -999;
+  trkMom_MuFwd_rm80 = -999;
+  trkMomErr_MuFwd_rm80 = -999;
+  trkLL_MuFwd_rm80 = -999;
+  trkMom_MuBwd_rm80 = -999;
+  trkMomErr_MuBwd_rm80 = -999;
+  trkLL_MuBwd_rm80 = -999;
+  trkMom_Mu_rm80 = -999;
+  trkMomErr_Mu_rm80 = -999;
+  trkLL_Mu_rm80 = -999;
+  trkDeltaLL_Mu_rm80 = -999;
+  trkIsBestFwd_Mu_rm80 = -999;
   //
   trkid0 = -999;
   trkid1 = -999;
@@ -366,6 +426,45 @@ void TrajectoryMCSNtuple::beginJob()
   tree->Branch("trkSegDirY"     , &trkSegDirY	  );
   tree->Branch("trkSegDirZ"     , &trkSegDirZ     );
   //
+  tree->Branch("trkLength_rm10", &trkLength_rm10, "trkLength_rm10/F");
+  tree->Branch("trkMom_MuFwd_rm10"   , &trkMom_MuFwd_rm10   , "trkMom_MuFwd_rm10/F"   );
+  tree->Branch("trkMomErr_MuFwd_rm10", &trkMomErr_MuFwd_rm10, "trkMomErr_MuFwd_rm10/F");
+  tree->Branch("trkLL_MuFwd_rm10"    , &trkLL_MuFwd_rm10    , "trkLL_MuFwd_rm10/F"    );
+  tree->Branch("trkMom_MuBwd_rm10"   , &trkMom_MuBwd_rm10   , "trkMom_MuBwd_rm10/F"   );
+  tree->Branch("trkMomErr_MuBwd_rm10", &trkMomErr_MuBwd_rm10, "trkMomErr_MuBwd_rm10/F");
+  tree->Branch("trkLL_MuBwd_rm10"    , &trkLL_MuBwd_rm10    , "trkLL_MuBwd_rm10/F"    );
+  tree->Branch("trkMom_Mu_rm10"      , &trkMom_Mu_rm10      , "trkMom_Mu_rm10/F"      );
+  tree->Branch("trkMomErr_Mu_rm10"   , &trkMomErr_Mu_rm10   , "trkMomErr_Mu_rm10/F"   );
+  tree->Branch("trkLL_Mu_rm10"       , &trkLL_Mu_rm10       , "trkLL_Mu_rm10/F"       );
+  tree->Branch("trkDeltaLL_Mu_rm10"  , &trkDeltaLL_Mu_rm10  , "trkDeltaLL_Mu_rm10/F"  );
+  tree->Branch("trkIsBestFwd_Mu_rm10", &trkIsBestFwd_Mu_rm10, "trkIsBestFwd_Mu_rm10/I");
+  //
+  tree->Branch("trkLength_rm50", &trkLength_rm50, "trkLength_rm50/F");
+  tree->Branch("trkMom_MuFwd_rm50"   , &trkMom_MuFwd_rm50   , "trkMom_MuFwd_rm50/F"   );
+  tree->Branch("trkMomErr_MuFwd_rm50", &trkMomErr_MuFwd_rm50, "trkMomErr_MuFwd_rm50/F");
+  tree->Branch("trkLL_MuFwd_rm50"    , &trkLL_MuFwd_rm50    , "trkLL_MuFwd_rm50/F"    );
+  tree->Branch("trkMom_MuBwd_rm50"   , &trkMom_MuBwd_rm50   , "trkMom_MuBwd_rm50/F"   );
+  tree->Branch("trkMomErr_MuBwd_rm50", &trkMomErr_MuBwd_rm50, "trkMomErr_MuBwd_rm50/F");
+  tree->Branch("trkLL_MuBwd_rm50"    , &trkLL_MuBwd_rm50    , "trkLL_MuBwd_rm50/F"    );
+  tree->Branch("trkMom_Mu_rm50"      , &trkMom_Mu_rm50      , "trkMom_Mu_rm50/F"      );
+  tree->Branch("trkMomErr_Mu_rm50"   , &trkMomErr_Mu_rm50   , "trkMomErr_Mu_rm50/F"   );
+  tree->Branch("trkLL_Mu_rm50"       , &trkLL_Mu_rm50       , "trkLL_Mu_rm50/F"       );
+  tree->Branch("trkDeltaLL_Mu_rm50"  , &trkDeltaLL_Mu_rm50  , "trkDeltaLL_Mu_rm50/F"  );
+  tree->Branch("trkIsBestFwd_Mu_rm50", &trkIsBestFwd_Mu_rm50, "trkIsBestFwd_Mu_rm50/I");
+  //
+  tree->Branch("trkLength_rm80", &trkLength_rm80, "trkLength_rm80/F");
+  tree->Branch("trkMom_MuFwd_rm80"   , &trkMom_MuFwd_rm80   , "trkMom_MuFwd_rm80/F"   );
+  tree->Branch("trkMomErr_MuFwd_rm80", &trkMomErr_MuFwd_rm80, "trkMomErr_MuFwd_rm80/F");
+  tree->Branch("trkLL_MuFwd_rm80"    , &trkLL_MuFwd_rm80    , "trkLL_MuFwd_rm80/F"    );
+  tree->Branch("trkMom_MuBwd_rm80"   , &trkMom_MuBwd_rm80   , "trkMom_MuBwd_rm80/F"   );
+  tree->Branch("trkMomErr_MuBwd_rm80", &trkMomErr_MuBwd_rm80, "trkMomErr_MuBwd_rm80/F");
+  tree->Branch("trkLL_MuBwd_rm80"    , &trkLL_MuBwd_rm80    , "trkLL_MuBwd_rm80/F"    );
+  tree->Branch("trkMom_Mu_rm80"      , &trkMom_Mu_rm80      , "trkMom_Mu_rm80/F"      );
+  tree->Branch("trkMomErr_Mu_rm80"   , &trkMomErr_Mu_rm80   , "trkMomErr_Mu_rm80/F"   );
+  tree->Branch("trkLL_Mu_rm80"       , &trkLL_Mu_rm80       , "trkLL_Mu_rm80/F"       );
+  tree->Branch("trkDeltaLL_Mu_rm80"  , &trkDeltaLL_Mu_rm80  , "trkDeltaLL_Mu_rm80/F"  );
+  tree->Branch("trkIsBestFwd_Mu_rm80", &trkIsBestFwd_Mu_rm80, "trkIsBestFwd_Mu_rm80/I");
+  //
   tree->Branch("trkid0"  , &trkid0  , "trkid0/I"  );
   tree->Branch("trkid1"  , &trkid1  , "trkid1/I"  );
   tree->Branch("trkid2"  , &trkid2  , "trkid2/I"  );
@@ -462,8 +561,15 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 
   art::ValidHandle<std::vector<sim::MCTrack> >* simTracks = 0;
   if (e.isRealData()==0) {
+    //std::cout << __FILE__ << " " << __LINE__ << std::endl;
     art::InputTag SimTrackInputTag("mcreco");
-    simTracks = new art::ValidHandle<std::vector<sim::MCTrack> >(e.getValidHandle<std::vector<sim::MCTrack> >(SimTrackInputTag));
+    try {
+      simTracks = new art::ValidHandle<std::vector<sim::MCTrack> >(e.getValidHandle<std::vector<sim::MCTrack> >(SimTrackInputTag));
+    } catch (...) {
+      std::cout << "MC event with invalid sim::MCTrack collection... skipping" << std::endl;
+      return;
+    }
+    //std::cout << __FILE__ << " " << __LINE__ << std::endl;
   }
 
   art::InputTag TrackInputTag(inputTracksLabel);
@@ -585,6 +691,111 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
     trkSegDirX      = trkSegDirXtmp;
     trkSegDirY      = trkSegDirYtmp;
     trkSegDirZ      = trkSegDirZtmp;
+    //
+    // remove last 10 cm and repeat the mcs fit
+    vector<Point_t> posv_rm10 = track.Trajectory().Trajectory().Positions();
+    vector<Vector_t> momv_rm10 = track.Trajectory().Trajectory().Momenta();
+    vector<TrajectoryPointFlags> flgv_rm10 = track.Trajectory().Flags();
+    size_t init_size_rm10 = posv_rm10.size();
+    for (size_t i=0;i<init_size_rm10;++i) {
+      if (posv_rm10[init_size_rm10-1-i].X()>-1.) break;
+      posv_rm10.pop_back();
+      momv_rm10.pop_back();
+      flgv_rm10.pop_back();
+    }
+    init_size_rm10 = posv_rm10.size();
+    for (size_t i=0;i<init_size_rm10;++i) {
+      if ((track.End()-posv_rm10[init_size_rm10-1-i]).R()>10.) break;
+      posv_rm10.pop_back();
+      momv_rm10.pop_back();
+      flgv_rm10.pop_back();
+    }
+    if (posv_rm10.size()>4) {
+      recob::TrackTrajectory tt_rm10(std::move(posv_rm10),std::move(momv_rm10),std::move(flgv_rm10),track.HasMomentum());
+      auto mcsMu_rm10 = mcsfitter.fitMcs(tt_rm10,13);
+      trkLength_rm10 = tt_rm10.Length();
+      trkMom_MuFwd_rm10    = mcsMu_rm10.fwdMomentum();
+      trkMomErr_MuFwd_rm10 = mcsMu_rm10.fwdMomUncertainty();
+      trkLL_MuFwd_rm10     = mcsMu_rm10.fwdLogLikelihood();
+      trkMom_MuBwd_rm10    = mcsMu_rm10.bwdMomentum();
+      trkMomErr_MuBwd_rm10 = mcsMu_rm10.bwdMomUncertainty();
+      trkLL_MuBwd_rm10     = mcsMu_rm10.bwdLogLikelihood();
+      trkMom_Mu_rm10       = mcsMu_rm10.bestMomentum();
+      trkMomErr_Mu_rm10    = mcsMu_rm10.bestMomUncertainty();
+      trkLL_Mu_rm10        = mcsMu_rm10.bestLogLikelihood();
+      trkDeltaLL_Mu_rm10   = mcsMu_rm10.deltaLogLikelihood();
+      trkIsBestFwd_Mu_rm10 = mcsMu_rm10.isBestFwd();
+    }
+    //
+    // remove last 50 cm and repeat the mcs fit
+    vector<Point_t> posv_rm50 = track.Trajectory().Trajectory().Positions();
+    vector<Vector_t> momv_rm50 = track.Trajectory().Trajectory().Momenta();
+    vector<TrajectoryPointFlags> flgv_rm50 = track.Trajectory().Flags();
+    size_t init_size_rm50 = posv_rm50.size();
+    for (size_t i=0;i<init_size_rm50;++i) {
+      if (posv_rm50[init_size_rm50-1-i].X()>-1.) break;
+      posv_rm50.pop_back();
+      momv_rm50.pop_back();
+      flgv_rm50.pop_back();
+    }
+    init_size_rm50 = posv_rm50.size();
+    for (size_t i=0;i<init_size_rm50;++i) {
+      if ((track.End()-posv_rm50[init_size_rm50-1-i]).R()>50.) break;
+      posv_rm50.pop_back();
+      momv_rm50.pop_back();
+      flgv_rm50.pop_back();
+    }
+    if (posv_rm50.size()>4) {
+      recob::TrackTrajectory tt_rm50(std::move(posv_rm50),std::move(momv_rm50),std::move(flgv_rm50),track.HasMomentum());
+      auto mcsMu_rm50 = mcsfitter.fitMcs(tt_rm50,13);
+      trkLength_rm50 = tt_rm50.Length();
+      trkMom_MuFwd_rm50    = mcsMu_rm50.fwdMomentum();
+      trkMomErr_MuFwd_rm50 = mcsMu_rm50.fwdMomUncertainty();
+      trkLL_MuFwd_rm50     = mcsMu_rm50.fwdLogLikelihood();
+      trkMom_MuBwd_rm50    = mcsMu_rm50.bwdMomentum();
+      trkMomErr_MuBwd_rm50 = mcsMu_rm50.bwdMomUncertainty();
+      trkLL_MuBwd_rm50     = mcsMu_rm50.bwdLogLikelihood();
+      trkMom_Mu_rm50       = mcsMu_rm50.bestMomentum();
+      trkMomErr_Mu_rm50    = mcsMu_rm50.bestMomUncertainty();
+      trkLL_Mu_rm50        = mcsMu_rm50.bestLogLikelihood();
+      trkDeltaLL_Mu_rm50   = mcsMu_rm50.deltaLogLikelihood();
+      trkIsBestFwd_Mu_rm50 = mcsMu_rm50.isBestFwd();
+    }
+    //
+    // remove last 80 cm and repeat the mcs fit
+    vector<Point_t> posv_rm80 = track.Trajectory().Trajectory().Positions();
+    vector<Vector_t> momv_rm80 = track.Trajectory().Trajectory().Momenta();
+    vector<TrajectoryPointFlags> flgv_rm80 = track.Trajectory().Flags();
+    size_t init_size_rm80 = posv_rm80.size();
+    for (size_t i=0;i<init_size_rm80;++i) {
+      if (posv_rm80[init_size_rm80-1-i].X()>-1.) break;
+      posv_rm80.pop_back();
+      momv_rm80.pop_back();
+      flgv_rm80.pop_back();
+    }
+    init_size_rm80 = posv_rm80.size();
+    for (size_t i=0;i<init_size_rm80;++i) {
+      if ((track.End()-posv_rm80[init_size_rm80-1-i]).R()>80.) break;
+      posv_rm80.pop_back();
+      momv_rm80.pop_back();
+      flgv_rm80.pop_back();
+    }
+    if (posv_rm80.size()>4) {
+      recob::TrackTrajectory tt_rm80(std::move(posv_rm80),std::move(momv_rm80),std::move(flgv_rm80),track.HasMomentum());
+      auto mcsMu_rm80 = mcsfitter.fitMcs(tt_rm80,13);
+      trkLength_rm80 = tt_rm80.Length();
+      trkMom_MuFwd_rm80    = mcsMu_rm80.fwdMomentum();
+      trkMomErr_MuFwd_rm80 = mcsMu_rm80.fwdMomUncertainty();
+      trkLL_MuFwd_rm80     = mcsMu_rm80.fwdLogLikelihood();
+      trkMom_MuBwd_rm80    = mcsMu_rm80.bwdMomentum();
+      trkMomErr_MuBwd_rm80 = mcsMu_rm80.bwdMomUncertainty();
+      trkLL_MuBwd_rm80     = mcsMu_rm80.bwdLogLikelihood();
+      trkMom_Mu_rm80       = mcsMu_rm80.bestMomentum();
+      trkMomErr_Mu_rm80    = mcsMu_rm80.bestMomUncertainty();
+      trkLL_Mu_rm80        = mcsMu_rm80.bestLogLikelihood();
+      trkDeltaLL_Mu_rm80   = mcsMu_rm80.deltaLogLikelihood();
+      trkIsBestFwd_Mu_rm80 = mcsMu_rm80.isBestFwd();
+    }
     //
     for (size_t ipid = 0; ipid < pids.size(); ++ipid){
       if (!pids[ipid]->PlaneID().isValid) continue;
