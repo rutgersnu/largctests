@@ -581,8 +581,8 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
   art::InputTag PMCSInputTag(PMCSLabel);
   art::ValidHandle<std::vector<recob::MCSFitResult> > MCSP = e.getValidHandle<std::vector<recob::MCSFitResult> >(PMCSInputTag);
   //
-  art::InputTag PidInputTag(inputTracksLabel+"calipid");
-  art::FindMany<anab::ParticleID> AssPid(Tracks, e, PidInputTag);
+  // art::InputTag PidInputTag(inputTracksLabel+"calipid");
+  // art::FindMany<anab::ParticleID> AssPid(Tracks, e, PidInputTag);
   //
   assert(Tracks->size()==MCSMu->size());
   //
@@ -590,7 +590,7 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
     const recob::Track& track = Tracks->at(iTrack);
     const recob::MCSFitResult& mcsMu = MCSMu->at(iTrack);
     const recob::MCSFitResult& mcsP = MCSP->at(iTrack);
-    std::vector<const anab::ParticleID*> pids = AssPid.at(iTrack);
+    // std::vector<const anab::ParticleID*> pids = AssPid.at(iTrack);
     //
     resetTree();
     //
@@ -797,23 +797,23 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
       trkIsBestFwd_Mu_rm80 = mcsMu_rm80.isBestFwd();
     }
     //
-    for (size_t ipid = 0; ipid < pids.size(); ++ipid){
-      if (!pids[ipid]->PlaneID().isValid) continue;
-      int planenum = pids[ipid]->PlaneID().Plane;
-      if (planenum<0||planenum>2) continue;
-      if (planenum==0) {
-	trkid0   = pids[ipid]->Pdg();
-	trkpida0 = pids[ipid]->PIDA();
-      }
-      if (planenum==1) {
-	trkid1   = pids[ipid]->Pdg();
-	trkpida1 = pids[ipid]->PIDA();
-      }
-      if (planenum==2) {
-	trkid2   = pids[ipid]->Pdg();
-	trkpida2 = pids[ipid]->PIDA();
-      }
-    }
+    // for (size_t ipid = 0; ipid < pids.size(); ++ipid){
+    //   if (!pids[ipid]->PlaneID().isValid) continue;
+    //   int planenum = pids[ipid]->PlaneID().Plane;
+    //   if (planenum<0||planenum>2) continue;
+    //   if (planenum==0) {
+    // 	trkid0   = pids[ipid]->Pdg();
+    // 	trkpida0 = pids[ipid]->PIDA();
+    //   }
+    //   if (planenum==1) {
+    // 	trkid1   = pids[ipid]->Pdg();
+    // 	trkpida1 = pids[ipid]->PIDA();
+    //   }
+    //   if (planenum==2) {
+    // 	trkid2   = pids[ipid]->Pdg();
+    // 	trkpida2 = pids[ipid]->PIDA();
+    //   }
+    // }
     //
     if (e.isRealData()==0) {
       for (unsigned int iMC = 0; iMC < (*simTracks)->size(); ++iMC) {

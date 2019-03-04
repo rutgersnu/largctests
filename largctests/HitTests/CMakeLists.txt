@@ -1,8 +1,7 @@
-
-
 include_directories ( $ENV{G4INCLUDE} )
 
 add_library (gshf_Event STATIC Event.cc)
+set_property(TARGET gshf_Event PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 art_make(  
           MODULE_LIBRARIES  larsim_Simulation 

@@ -433,11 +433,11 @@ void ShowerPerformance::analyze(art::Event const& e)
   auto const& mctruth = *e.getValidHandle<std::vector<simb::MCTruth> >("generator");
   auto const& inputMCP = e.getValidHandle<std::vector<simb::MCParticle> >("largeant");
 
-  bool isNuSim = false;
+  // bool isNuSim = false;
 
   Point_t nuvtx(0,0,0);
   if (mctruth[0].NeutrinoSet()) {
-    isNuSim = true;
+    // isNuSim = true;
     nuvtx = Point_t(mctruth[0].GetNeutrino().Nu().Position().X(),mctruth[0].GetNeutrino().Nu().Position().Y(),mctruth[0].GetNeutrino().Nu().Position().Z());
     if (0) std::cout << "nu vtx=" << nuvtx << " with daughters=" << mctruth[0].GetNeutrino().Nu().NumberDaughters() << std::endl;
     for (int i=0; i<mctruth[0].NParticles(); ++i) {
@@ -485,7 +485,7 @@ void ShowerPerformance::analyze(art::Event const& e)
 	for (size_t imcp = 0; imcp<inputMCP->size();imcp++) {
 	  art::Ptr<simb::MCParticle> gmcp(inputMCP,imcp);
 	  if (std::abs(gmcp->PdgCode())!=22) continue;
-	  if (gmcp->TrackId()<fd || gmcp->TrackId()>ld) continue;
+	  if (gmcp->TrackId()<int(fd) || gmcp->TrackId()>int(ld)) continue;
 	  if (gmcp->P()>maxP) {
 	    maxP = gmcp->P();
 	    maxkey = gmcp.key();
@@ -501,7 +501,7 @@ void ShowerPerformance::analyze(art::Event const& e)
 	for (size_t imcp = 0; imcp<inputMCP->size();imcp++) {
 	  art::Ptr<simb::MCParticle> emcp(inputMCP,imcp);
 	  if (std::abs(emcp->PdgCode())!=11) continue;
-	  if (emcp->TrackId()<fd || emcp->TrackId()>ld) continue;
+	  if (emcp->TrackId()<int(fd) || emcp->TrackId()>int(ld)) continue;
 	  if (emcp->P()>maxP) {
 	    maxP = emcp->P();
 	    maxkey = emcp.key();
@@ -528,7 +528,7 @@ void ShowerPerformance::analyze(art::Event const& e)
       float maxP = 0;
       for (size_t imcp = 0; imcp<inputMCP->size();imcp++) {
 	art::Ptr<simb::MCParticle> mcp(inputMCP,imcp);
-	if (mcp->TrackId()<fd || mcp->TrackId()>ld) continue;
+	if (mcp->TrackId()<int(fd) || mcp->TrackId()>int(ld)) continue;
 	if (mcp->P()>maxP) {
 	  maxP = mcp->P();
 	  maxkey = mcp.key();
@@ -702,7 +702,7 @@ void ShowerPerformance::analyze(art::Event const& e)
     //
     //now figure out if there is a track associated to the same pfp
     for (auto t : inputTracks) {
-      if (t->ID()!=iPfp) continue;
+      if (t->ID()!=int(iPfp)) continue;
       if (0) std::cout << "found track" << std::endl;
       recob::tracking::Point_t tk_pos = t->Start();
       recob::tracking::Vector_t tk_dir = t->StartDirection();
