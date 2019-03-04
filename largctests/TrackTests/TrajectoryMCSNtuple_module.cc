@@ -899,11 +899,11 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
 	      mclen+=sqrt( (mctrack[imc+1].X()-mctrack[imc].X())*(mctrack[imc+1].X()-mctrack[imc].X()) +
 			   (mctrack[imc+1].Y()-mctrack[imc].Y())*(mctrack[imc+1].Y()-mctrack[imc].Y()) +
 			   (mctrack[imc+1].Z()-mctrack[imc].Z())*(mctrack[imc+1].Z()-mctrack[imc].Z()) );
-	      //check segment length along the initial direction //fixme
-	      thislen += sqrt( (mctrack[imc+1].X()-mctrack[imc].X())*(mctrack[imc+1].X()-mctrack[imc].X()) +
-                               (mctrack[imc+1].Y()-mctrack[imc].Y())*(mctrack[imc+1].Y()-mctrack[imc].Y()) +
-                               (mctrack[imc+1].Z()-mctrack[imc].Z())*(mctrack[imc+1].Z()-mctrack[imc].Z()) );
-	      // thislen += startsegdirs.back().Dot(Vector_t(mctrack[imc+1].X()-mctrack[imc].X(),mctrack[imc+1].Y()-mctrack[imc].Y(),mctrack[imc+1].Z()-mctrack[imc].Z()));
+	      //check segment length along the initial direction
+	      thislen += startsegdirs.back().Dot(Vector_t(mctrack[imc+1].X()-mctrack[imc].X(),mctrack[imc+1].Y()-mctrack[imc].Y(),mctrack[imc+1].Z()-mctrack[imc].Z()));
+	      // thislen += sqrt( (mctrack[imc+1].X()-mctrack[imc].X())*(mctrack[imc+1].X()-mctrack[imc].X()) +
+              //                  (mctrack[imc+1].Y()-mctrack[imc].Y())*(mctrack[imc+1].Y()-mctrack[imc].Y()) +
+              //                  (mctrack[imc+1].Z()-mctrack[imc].Z())*(mctrack[imc+1].Z()-mctrack[imc].Z()) );
 	    }
 	  }
 	  if (thislen>thisSegLen-1.0) {

@@ -35,26 +35,56 @@ source.inputCommands: [ "keep *_*_*_*", "drop *_opfiltercommon__McRecoStage1" ]
 
 physics: {
   producers: {
-    pandoracalo:                      @local::microboone_calodata
-    pandoracali:                      @local::microboone_calibrationdedx
-    pandoracalipid:                   @local::microboone_chi2pid
     pandoraMCSFitMu2: {
-    @table::mcsfitproducer
-    module_label: pandoraMCSFitMu2
-    inputs: {
-          inputLabel: pandora
+       @table::mcsfitproducer
+       module_label: pandoraMCSFitMu2
+       inputs: {
+          inputLabel: pandoraTrack
+       }
+    }
+    pandoraMCSFitMu2p1: {
+       @table::mcsfitproducer
+       module_label: pandoraMCSFitMu2p1
+       inputs: {
+          inputLabel: pandoraTrack
+       }
+       fitter: {
+          @table::mcsfitproducer.fitter
+          fineScanWindow: 3.0
+       }
+    }
+    pandoraMCSFitMu3: {
+       @table::mcsfitproducer
+       module_label: pandoraMCSFitMu2
+       inputs: {
+          inputLabel: pandoraTrack
+       }
+       fitter: {
+    	 @table::mcsfitproducer.fitter 
+         segmentLength: 10
+       }
+    }
+    pandoraMCSFitMu4: {
+       @table::mcsfitproducer
+       module_label: pandoraMCSFitMu2
+       inputs: {
+          inputLabel: pandoraTrack
+       }
+       fitter: {
+         @table::mcsfitproducer.fitter
+         hlParams: [0.15, 0., 12.2]#fit4[0.07, 0., 12.3]#fit3[0., 0.5, 12.]#fit2[0.15, 0., 12.2]
        }
     }
     pandoraMCSFitP2: {
-    @table::mcsfitproducer
-    module_label: pandoraMCSFitP2
-    inputs: {
-          inputLabel: pandora
+       @table::mcsfitproducer
+       module_label: pandoraMCSFitP2
+       inputs: {
+          inputLabel: pandoraTrack
        }
-    fitter: {
-    	 @table::mcsfitproducer.fitter 
+       fitter: {
+         @table::mcsfitproducer.fitter
          pIdHypothesis: 2212
-        }
+       }
     }
   }
 
@@ -69,29 +99,83 @@ physics: {
       }
       mcsfitter: {@table::mcsfitproducer.fitter}
       mcsfittermc: {
-                    @table::mcsfitproducer.fitter
-                    angResol: 0
-		   }
+           @table::mcsfitproducer.fitter
+           angResol: 0
+      }
       #SelectEvents: [sel2]
     } # trajmcsntuple
     trajmcsntuple2: {
       module_label: TrajectoryMCSNtuple
       module_type:  TrajectoryMCSNtuple
       inputs: {
-           inputLabel: pandora
+           inputLabel: pandoraTrack
            MuMCSLabel: pandoraMCSFitMu2
            PMCSLabel: pandoraMCSFitP2
       }
       mcsfitter: {@table::mcsfitproducer.fitter}
       mcsfittermc: {
-                    @table::mcsfitproducer.fitter
-                    angResol: 0
-		   }
+           @table::mcsfitproducer.fitter
+           angResol: 0
+      }
+    } # trajmcsntuple2
+    trajmcsntuple2p1: {
+      module_label: TrajectoryMCSNtuple
+      module_type:  TrajectoryMCSNtuple
+      inputs: {
+           inputLabel: pandoraTrack
+           MuMCSLabel: pandoraMCSFitMu2p1
+           PMCSLabel: pandoraMCSFitP2
+      }
+      mcsfitter: {
+           @table::mcsfitproducer.fitter
+           fineScanWindow: 3.0
+      }
+      mcsfittermc: {
+           @table::mcsfitproducer.fitter
+           fineScanWindow: 3.0
+           angResol: 0
+      }
+    } # trajmcsntuple2p1
+    trajmcsntuple3: {
+      module_label: TrajectoryMCSNtuple
+      module_type:  TrajectoryMCSNtuple
+      inputs: {
+           inputLabel: pandoraTrack
+           MuMCSLabel: pandoraMCSFitMu3
+           PMCSLabel: pandoraMCSFitP2
+      }
+      mcsfitter: {
+           @table::mcsfitproducer.fitter
+	   segmentLength: 10
+      }
+      mcsfittermc: {
+           @table::mcsfitproducer.fitter
+	   segmentLength: 10
+           angResol: 0
+      }
+    } # trajmcsntuple3
+    trajmcsntuple4: {
+      module_label: TrajectoryMCSNtuple
+      module_type:  TrajectoryMCSNtuple
+      inputs: {
+           inputLabel: pandoraTrack
+           MuMCSLabel: pandoraMCSFitMu4
+           PMCSLabel: pandoraMCSFitP2
+      }
+      mcsfitter: {
+           @table::mcsfitproducer.fitter
+	   hlParams: [0.15, 0., 12.2]#fit4[0.07, 0., 12.3]#fit3[0., 0.5, 12.]#fit2[0.15, 0., 12.2]
+      }
+      mcsfittermc: {
+           @table::mcsfitproducer.fitter
+           hlParams: [0.15, 0., 12.2]#fit4[0.07, 0., 12.3]#fit3[0., 0.5, 12.]#fit2[0.15, 0., 12.2]
+           angResol: 0
+      }
     } # trajmcsntuple2
   }
 
-  ana: [ trajmcsntuple, trajmcsntuple2 ]
-  pro:  [ pandoraMCSFitMu2, pandoraMCSFitP2]
+  ana: [ trajmcsntuple, trajmcsntuple2, trajmcsntuple2p1, trajmcsntuple3, trajmcsntuple4 ]
+  pro:  [ pandoraMCSFitP2, pandoraMCSFitMu2, pandoraMCSFitMu2p1, pandoraMCSFitMu3, pandoraMCSFitMu4 ]
 
   #stream1:  [out1]
 
