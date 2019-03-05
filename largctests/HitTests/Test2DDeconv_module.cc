@@ -160,7 +160,7 @@ void Test2DDeconv::analyze(art::Event const & e)
   constexpr double dyzcut_3m = 1.0;
   constexpr double dtimecut_3m = 10;
 
-  art::InputTag trkTag("pandoraCosmicKalmanTrack");
+  art::InputTag trkTag("pandora");
   auto const& tracks   = proxy::getCollection<proxy::Tracks>(e,trkTag);
   h_ntracks->Fill(tracks.size());
   int ntracksall = 0;
