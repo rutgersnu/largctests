@@ -27,6 +27,7 @@
 #include "lardataobj/RecoBase/PFParticle.h"
 #include "lardataobj/RecoBase/Cluster.h"
 #include "lardataobj/RecoBase/PFParticleMetadata.h"
+#include "lardataobj/RecoBase/Slice.h"
 
 #include "lardata/DetectorInfoServices/DetectorPropertiesService.h"
 #include "lardataalg/DetectorInfo/DetectorProperties.h"
@@ -57,12 +58,20 @@ public:
 
   void resetTree();
 
+  std::vector<size_t> pfpDaughtersKey(const art::Ptr<recob::PFParticle> ppfp,
+				      art::ValidHandle<std::vector<recob::PFParticle> > inputPfParticle);
+
   void incrementCounts(const art::Ptr<recob::PFParticle> ppfp,
 		       const std::unique_ptr<art::FindManyP<recob::Cluster> >& assocCluster,
 		       const std::unique_ptr<art::FindManyP<recob::Hit> >& assocHit,
 		       const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& assocMCPart,
-		       const std::vector<int>& swrid, const std::vector<int>& proid, const std::vector<int>& pioid,
-		       int& npfhits, int& nelehitsPF, std::vector<int>& nprohitsPF, std::vector<int>& npiohitsPF) const;
+		       const std::vector<int>& swrid, const std::vector<int>& proid, const std::vector<int>& pioid, const std::vector<int>& npiid, const std::vector<int>& neuid,
+		       int& npfhits, int& nelehitsPF, std::vector<int>& nprohitsPF, std::vector<int>& npiohitsPF, int& nnpihitsPF, int& nneuhitsPF) const;
+
+  void countSliceHits(const std::vector<art::Ptr<recob::Hit> >& hits,
+		       const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& assocMCPart,
+		       const std::vector<int>& swrid, const std::vector<int>& proid, const std::vector<int>& pioid, const std::vector<int>& npiid, const std::vector<int>& neuid,
+		       int& nelehitsPF, int& nprohitsPF, int& npiohitsPF, int& nnpihitsPF, int& nneuhitsPF) const;
 
 private:
 
@@ -78,6 +87,8 @@ private:
   std::vector<double> prop;
   std::vector<double> pioe;
   std::vector<double> piop;
+  std::vector<double> npie;
+  std::vector<double> npip;
   std::vector<double> neue;
   std::vector<double> neup;
   //
@@ -85,6 +96,8 @@ private:
   int nelhits;
   int ntotprhits;
   int ntotpihits;
+  int ntotnphits;
+  int ntotnehits;
   std::vector<int> nprhits;
   std::vector<int> npihits;
   //
@@ -92,6 +105,8 @@ private:
   int nelhitscr;
   int ntotprhitscr;
   int ntotpihitscr;
+  int ntotnphitscr;
+  int ntotnehitscr;
   std::vector<int> nprhitscr;
   std::vector<int> npihitscr;
   //
@@ -99,6 +114,12 @@ private:
   int npfnus;
   std::vector<int> nupfpdg;
   std::vector<int> nupftothits;
+  std::vector<int> nusltothits;
+  std::vector<int> nuslelhits;
+  std::vector<int> nusltotprhits;
+  std::vector<int> nusltotpihits;
+  std::vector<int> nusltotnphits;
+  std::vector<int> nusltotnehits;
   std::vector<float> nupfscore;
   std::vector<float> nuvtxx;
   std::vector<float> nuvtxy;
@@ -108,6 +129,8 @@ private:
   std::vector< std::vector<int> > pfelhits;
   std::vector< std::vector<int> > pftotprhits;
   std::vector< std::vector<int> > pftotpihits;
+  std::vector< std::vector<int> > pftotnphits;
+  std::vector< std::vector<int> > pftotnehits;
   std::vector< std::vector<int> > pfprhits;
   std::vector< std::vector<int> > pfpihits;
   std::vector< std::vector<int> > pfprid;
@@ -152,6 +175,8 @@ void LeeSimRecoTest::resetTree() {
   prop.clear();
   pioe.clear();
   piop.clear();
+  npie.clear();
+  npip.clear();
   neue.clear();
   neup.clear();
   //
@@ -159,6 +184,8 @@ void LeeSimRecoTest::resetTree() {
   nelhits = -999;
   ntotprhits = -999;
   ntotpihits = -999;
+  ntotnphits = -999;
+  ntotnehits = -999;
   nprhits.clear();
   npihits.clear();
   //
@@ -166,6 +193,8 @@ void LeeSimRecoTest::resetTree() {
   nelhitscr = -999;
   ntotprhitscr = -999;
   ntotpihitscr = -999;
+  ntotnphitscr = -999;
+  ntotnehitscr = -999;
   nprhitscr.clear();
   npihitscr.clear();
   //
@@ -173,6 +202,12 @@ void LeeSimRecoTest::resetTree() {
   npfnus = -999;
   nupfpdg.clear();
   nupftothits.clear();
+  nusltothits.clear();
+  nuslelhits.clear();
+  nusltotprhits.clear();
+  nusltotpihits.clear();
+  nusltotnphits.clear();
+  nusltotnehits.clear();
   nupfscore.clear();
   nuvtxx.clear();
   nuvtxy.clear();
@@ -182,6 +217,8 @@ void LeeSimRecoTest::resetTree() {
   pfelhits.clear();
   pftotprhits.clear();
   pftotpihits.clear();
+  pftotnphits.clear();
+  pftotnehits.clear();
   pfprhits.clear();
   pfpihits.clear();
   pfprid.clear();
@@ -223,6 +260,8 @@ void LeeSimRecoTest::beginJob()
   tree->Branch("prop", &prop);
   tree->Branch("pioe", &pioe);
   tree->Branch("piop", &piop);
+  tree->Branch("npie", &npie);
+  tree->Branch("npip", &npip);
   tree->Branch("neue", &neue);
   tree->Branch("neup", &neup);
   //
@@ -230,6 +269,8 @@ void LeeSimRecoTest::beginJob()
   tree->Branch("nelhits", &nelhits, "nelhits/I");
   tree->Branch("ntotprhits", &ntotprhits, "ntotprhits/I");
   tree->Branch("ntotpihits", &ntotpihits, "ntotpihits/I");
+  tree->Branch("ntotnphits", &ntotnphits, "ntotnphits/I");
+  tree->Branch("ntotnehits", &ntotnehits, "ntotnehits/I");
   tree->Branch("nprhits", &nprhits);
   tree->Branch("npihits", &npihits);
   //
@@ -237,6 +278,8 @@ void LeeSimRecoTest::beginJob()
   tree->Branch("nelhitscr", &nelhitscr, "nelhitscr/I");
   tree->Branch("ntotprhitscr", &ntotprhitscr, "ntotprhitscr/I");
   tree->Branch("ntotpihitscr", &ntotpihitscr, "ntotpihitscr/I");
+  tree->Branch("ntotnphitscr", &ntotnphitscr, "ntotnphitscr/I");
+  tree->Branch("ntotnehitscr", &ntotnehitscr, "ntotnehitscr/I");
   tree->Branch("nprhitscr", &nprhitscr);
   tree->Branch("npihitscr", &npihitscr);
   //
@@ -248,11 +291,19 @@ void LeeSimRecoTest::beginJob()
   tree->Branch("nuvtxy", &nuvtxy);
   tree->Branch("nuvtxz", &nuvtxz);
   tree->Branch("nupftothits", &nupftothits);
+  tree->Branch("nusltothits", &nusltothits);
+  tree->Branch("nuslelhits", &nuslelhits);
+  tree->Branch("nusltotprhits", &nusltotprhits);
+  tree->Branch("nusltotpihits", &nusltotpihits);
+  tree->Branch("nusltotnphits", &nusltotnphits);
+  tree->Branch("nusltotnehits", &nusltotnehits);
   tree->Branch("pfpdg", &pfpdg);
   tree->Branch("pfhits", &pfhits);
   tree->Branch("pfelhits", &pfelhits);
   tree->Branch("pftotprhits", &pftotprhits);
   tree->Branch("pftotpihits", &pftotpihits);
+  tree->Branch("pftotnphits", &pftotnphits);
+  tree->Branch("pftotnehits", &pftotnehits);
   tree->Branch("pfprhits", &pfprhits);
   tree->Branch("pfpihits", &pfpihits);
   tree->Branch("pfprid", &pfprid);
@@ -289,9 +340,11 @@ void LeeSimRecoTest::analyze(art::Event const & e)
   bool isinfidvol = false;
   std::vector<double> epro;
   std::vector<double> epio;
+  std::vector<double> enpi;
   std::vector<double> eneu;
   std::vector<double> ppro;
   std::vector<double> ppio;
+  std::vector<double> pnpi;
   std::vector<double> pneu;
 
   detinfo::DetectorProperties const* theDetector = lar::providerFrom<detinfo::DetectorPropertiesService>();
@@ -313,10 +366,14 @@ void LeeSimRecoTest::analyze(art::Event const & e)
   for ( int im=0; im<mct.NParticles(); ++im ) {
     const auto& mcp = mct.GetParticle(im);
     if (mcp.StatusCode()==1) {
-       // std::cout << "id=" << mcp.TrackId() << " status=" << mcp.StatusCode() << " pdg=" << mcp.PdgCode() << " mother= " << mcp.Mother() << " E=" << mcp.E() << " P=" << mcp.P() << std::endl;
+      // std::cout << "id=" << mcp.TrackId() << " status=" << mcp.StatusCode() << " pdg=" << mcp.PdgCode() << " mother= " << mcp.Mother() << " E=" << mcp.E() << " P=" << mcp.P() << std::endl;
       if (std::abs(mcp.PdgCode())==211) {
 	epio.push_back(mcp.E());
 	ppio.push_back(mcp.P());
+      }
+      if (std::abs(mcp.PdgCode())==111) {
+	enpi.push_back(mcp.E());
+	pnpi.push_back(mcp.P());
       }
       if (std::abs(mcp.PdgCode())==2212) {
 	epro.push_back(mcp.E());
@@ -333,7 +390,7 @@ void LeeSimRecoTest::analyze(art::Event const & e)
 
   if (!isinfidvol) return;
 
-  //
+  // fill tree variables with MCTruth info
   nue = mct.GetNeutrino().Nu().E();
   nup = mct.GetNeutrino().Nu().P();
   nux = mct.GetNeutrino().Lepton().Vx();
@@ -356,6 +413,8 @@ void LeeSimRecoTest::analyze(art::Event const & e)
   prop = ppro;
   pioe = epio;
   piop = ppio;
+  npie = enpi;
+  npip = pnpi;
   neue = eneu;
   neup = pneu;
   //
@@ -366,6 +425,7 @@ void LeeSimRecoTest::analyze(art::Event const & e)
   std::vector<int> proid;
   std::vector<int> pioid;
   std::vector<int> neuid;
+  std::vector<int> npiid;
   // largeant, simb::MCParticle
   art::InputTag MCInputTag("largeant");
   art::ValidHandle<std::vector<simb::MCParticle> > inputMCParticle = e.getValidHandle<std::vector<simb::MCParticle> >(MCInputTag);
@@ -377,7 +437,7 @@ void LeeSimRecoTest::analyze(art::Event const & e)
       // if (abs(mcp.PdgCode())==2212) std::cout << "id=" << mcp.TrackId() << " status=" << mcp.StatusCode()<< " pdg=" << mcp.PdgCode() << " mother= " << mcp.Mother() << " E=" << mcp.E() << std::endl;//HERE
       if (mcp.Mother()==0 && mcp.StatusCode()==1) {
 	// /// std::cout << "id=" << mcp.TrackId() << " status=" << mcp.StatusCode()<< " pdg=" << mcp.PdgCode() << " mother= " << mcp.Mother() << " E=" << mcp.E() << std::endl;
-	if (abs(mcp.PdgCode())==11 && std::abs(elep-mcp.E())<0.00001) {
+	if (abs(mcp.PdgCode())==pdglep && std::abs(elep-mcp.E())<0.00001) {
 	  eleid = mcp.TrackId();
 	  swrid.push_back(eleid);
 	} else if (abs(mcp.PdgCode())==2212) {
@@ -392,15 +452,23 @@ void LeeSimRecoTest::analyze(art::Event const & e)
 	  for (unsigned int ip=0; ip<ppio.size(); ip++) {
 	    if (std::abs(ppio[ip]-mcp.P())<0.00000001) pioid.push_back(mcp.TrackId());
 	  }
+	} else if (abs(mcp.PdgCode())==111) {
+	  for (unsigned int ip=0; ip<pnpi.size(); ip++) {
+	    if (std::abs(pnpi[ip]-mcp.P())<0.00000001) npiid.push_back(mcp.TrackId());
+	  }
 	} else if (abs(mcp.PdgCode())==2112) {
 	  for (unsigned int ip=0; ip<pneu.size(); ip++) {
 	    if (std::abs(pneu[ip]-mcp.P())<0.00000001) neuid.push_back(mcp.TrackId());
 	  }
 	}
       }
+      // navigate shower history
       if (std::find(swrid.begin(), swrid.end(), mcp.Mother())!=swrid.end()) {
 	swrid.push_back(mcp.TrackId());
 	// std::cout << "adding swr particle with mother=" << mcp.Mother() << " and id=" << mcp.TrackId() << std::endl;
+      }
+      if (std::find(npiid.begin(), npiid.end(), mcp.Mother())!=npiid.end()) {
+	npiid.push_back(mcp.TrackId());
       }
     }
   }
@@ -418,6 +486,8 @@ void LeeSimRecoTest::analyze(art::Event const & e)
   int nelehits = 0;
   std::vector<int> nprohits(ppro.size(),0);
   std::vector<int> npiohits(ppio.size(),0);
+  int nnpihits = 0;
+  int nneuhits = 0;
   for ( unsigned int ih=0; ih<inputHits->size(); ih++) {
     auto assmcp = assocMCPart->at(ih);
     auto assmdt = assocMCPart->data(ih);
@@ -450,6 +520,12 @@ void LeeSimRecoTest::analyze(art::Event const & e)
       } else if (std::find(pioid.begin(),pioid.end(),mcp->TrackId())!=pioid.end()) {
 	npiohits[std::find(pioid.begin(),pioid.end(),mcp->TrackId())-pioid.begin()]++;
 	//break;//not needed with isMaxIDE
+      } else if (std::find(npiid.begin(),npiid.end(),mcp->TrackId())!=npiid.end()) {
+	nnpihits++;
+	//break;//not needed with isMaxIDE
+      } else if (std::find(neuid.begin(),neuid.end(),mcp->TrackId())!=neuid.end()) {
+	nneuhits++;
+	//break;//not needed with isMaxIDE
       }
     }
   }
@@ -463,6 +539,8 @@ void LeeSimRecoTest::analyze(art::Event const & e)
   nelhits = nelehits;
   ntotprhits = countprohits;
   ntotpihits = countpiohits;
+  ntotnphits = nnpihits;
+  ntotnehits = nneuhits;
   nprhits = nprohits;
   npihits = npiohits;
   //
@@ -473,6 +551,8 @@ void LeeSimRecoTest::analyze(art::Event const & e)
   int mynelhitscr = 0;
   int myntotprhitscr = 0;
   int myntotpihitscr = 0;
+  int myntotnphitscr = 0;
+  int myntotnehitscr = 0;
   std::vector<int> mynprhitscr(ppro.size(),0);
   std::vector<int> mynpihitscr(ppio.size(),0);
   //
@@ -480,6 +560,12 @@ void LeeSimRecoTest::analyze(art::Event const & e)
   int mynpfnus = 0;
   std::vector<int> mynupfpdg;
   std::vector<int> mynupftothits;
+  std::vector<int> mynusltothits;
+  std::vector<int> mynuslelhits;
+  std::vector<int> mynusltotprhits;
+  std::vector<int> mynusltotpihits;
+  std::vector<int> mynusltotnphits;
+  std::vector<int> mynusltotnehits;
   std::vector<float> mynupfscore;
   std::vector<float> mynuvtxx;
   std::vector<float> mynuvtxy;
@@ -489,6 +575,8 @@ void LeeSimRecoTest::analyze(art::Event const & e)
   std::vector< std::vector<int> > mypfelhits;
   std::vector< std::vector<int> > mypftotprhits;
   std::vector< std::vector<int> > mypftotpihits;
+  std::vector< std::vector<int> > mypftotnphits;
+  std::vector< std::vector<int> > mypftotnehits;
   std::vector< std::vector<int> > mypfprhits;
   std::vector< std::vector<int> > mypfpihits;
   std::vector< std::vector<int> > mypfprid;
@@ -499,6 +587,7 @@ void LeeSimRecoTest::analyze(art::Event const & e)
   std::vector< std::vector<float> > mypfvtxx;
   std::vector< std::vector<float> > mypfvtxy;
   std::vector< std::vector<float> > mypfvtxz;
+  //
   art::InputTag PfInputTag("pandora");
   art::ValidHandle<std::vector<recob::PFParticle> > inputPfParticle = e.getValidHandle<std::vector<recob::PFParticle> >(PfInputTag);
   art::ValidHandle<std::vector<recob::Cluster> > inputCluster = e.getValidHandle<std::vector<recob::Cluster> >(PfInputTag);
@@ -506,6 +595,11 @@ void LeeSimRecoTest::analyze(art::Event const & e)
   auto assocHit = std::unique_ptr<art::FindManyP<recob::Hit> >(new art::FindManyP<recob::Hit>(inputCluster, e, PfInputTag));
   auto assocVertex = std::unique_ptr<art::FindManyP<recob::Vertex> >(new art::FindManyP<recob::Vertex>(inputPfParticle, e, PfInputTag));
   art::FindManyP< larpandoraobj::PFParticleMetadata > pfPartToMetadataAssoc(inputPfParticle, e, PfInputTag);
+
+  auto assocSlice = std::unique_ptr<art::FindManyP<recob::Slice> >(new art::FindManyP<recob::Slice>(inputPfParticle, e, PfInputTag));
+  art::ValidHandle<std::vector<recob::Slice> > inputSlice = e.getValidHandle<std::vector<recob::Slice> >(PfInputTag);
+  auto assocSliceHit = std::unique_ptr<art::FindManyP<recob::Hit> >(new art::FindManyP<recob::Hit>(inputSlice, e, PfInputTag));
+
   /// std::cout << "N pfps=" << inputPfParticle->size() << std::endl;
   for (unsigned int inpf=0; inpf<inputPfParticle->size(); ++inpf) {
     art::Ptr<recob::PFParticle> npfp(inputPfParticle,inpf);
@@ -524,7 +618,7 @@ void LeeSimRecoTest::analyze(art::Event const & e)
     bool isClearCosmic = false;
     bool isTheNeutrino = false;
     double nuScore = -1;
-    const std::vector< art::Ptr<larpandoraobj::PFParticleMetadata> > &pfParticleMetadataList(pfPartToMetadataAssoc.at(inpf));
+    const std::vector< art::Ptr<larpandoraobj::PFParticleMetadata> > &pfParticleMetadataList(pfPartToMetadataAssoc.at(npfp.key()));
     if (!pfParticleMetadataList.empty()) {
       for (unsigned int j=0; j<pfParticleMetadataList.size(); ++j) {
 	const art::Ptr<larpandoraobj::PFParticleMetadata> &pfParticleMetadata(pfParticleMetadataList.at(j));
@@ -539,24 +633,34 @@ void LeeSimRecoTest::analyze(art::Event const & e)
     if (npfp->IsPrimary()==false) continue; 
     //std::cout << "Primary pfp with isClearCosmic=" << isClearCosmic << " isTheNeutrino=" << isTheNeutrino << " nuScore=" << nuScore << std::endl;
 
+    //  recob::Slices are unique for the neutrino slice and for clear cosmics. Ambiguous cosmics may have >1 primary PFParticle per slice
+    // (i.e. the slice is not unique in terms of primary PFParticles)
+    auto slices = assocSlice->at(npfp.key());
+    if (slices.size()!=1) {
+      std::cout << "WRONG!!! n slices = " << slices.size() << std::endl;
+    }
+    auto slicehit = assocSliceHit->at(slices[0].key());
+
     if (isClearCosmic) {
       // this is the vector of pfps in this slice 
-      std::vector<size_t> spfps = npfp->Daughters();//initialize with the duaghters
+      std::vector<size_t> spfps = pfpDaughtersKey(npfp,inputPfParticle);//initialize with the daughters
       // include also pfps one more layer down in the hierarchy (secondaries)
       for (unsigned int ipf : spfps) {
 	art::Ptr<recob::PFParticle> ppfp(inputPfParticle,ipf);
-	const std::vector<size_t>& dpfps_tmp = ppfp->Daughters();
+	const std::vector<size_t>& dpfps_tmp = pfpDaughtersKey(ppfp,inputPfParticle);
 	for (auto k : dpfps_tmp) spfps.push_back(k);
       }
       //finally add the primary as well, since it's not the neutrino
-      spfps.push_back(inpf);      
+      spfps.push_back(npfp.key());
       int npfhits = 0;
       int nelehitsCR = 0;
       std::vector<int> nprohitsCR(ppro.size(),0);
       std::vector<int> npiohitsCR(ppio.size(),0);
+      int nnpihitsCR = 0;
+      int nneuhitsCR = 0;
       for (unsigned int ipf : spfps) {
 	art::Ptr<recob::PFParticle> ppfp(inputPfParticle,ipf);
-	incrementCounts(ppfp, assocCluster, assocHit, assocMCPart, swrid, proid, pioid, npfhits, nelehitsCR, nprohitsCR, npiohitsCR);
+	incrementCounts(ppfp, assocCluster, assocHit, assocMCPart, swrid, proid, pioid, npiid, neuid, npfhits, nelehitsCR, nprohitsCR, npiohitsCR, nnpihitsCR, nneuhitsCR);
       }
       //
       int countprohitsCR = 0;
@@ -568,6 +672,8 @@ void LeeSimRecoTest::analyze(art::Event const & e)
       mynelhitscr += nelehitsCR;
       myntotprhitscr += countprohitsCR;
       myntotpihitscr += countpiohitsCR;
+      myntotnphitscr += nnpihitsCR;
+      myntotnehitscr += nneuhitsCR;
       for (unsigned int k=0;k<nprohitsCR.size();k++) mynprhitscr[k] += nprohitsCR[k];
       for (unsigned int k=0;k<npiohitsCR.size();k++) mynpihitscr[k] += npiohitsCR[k];
       continue;
@@ -577,6 +683,18 @@ void LeeSimRecoTest::analyze(art::Event const & e)
     mynupfpdg.push_back(npfp->PdgCode());
     mynupfscore.push_back(nuScore);
     mynupftothits.push_back(0);
+    int nslelhits=0;
+    int nsltotprhits=0;
+    int nsltotpihits=0;
+    int nsltotnphits=0;
+    int nsltotnehits=0;
+    countSliceHits(slicehit,assocMCPart,swrid,proid,pioid,npiid,neuid,nslelhits,nsltotprhits,nsltotpihits,nsltotnphits,nsltotnehits);
+    mynusltothits.push_back(slicehit.size());
+    mynuslelhits.push_back(nslelhits);
+    mynusltotprhits.push_back(nsltotprhits);
+    mynusltotpihits.push_back(nsltotpihits);
+    mynusltotnphits.push_back(nsltotnphits);
+    mynusltotnehits.push_back(nsltotnehits);
     const std::vector<art::Ptr<recob::Vertex> >& vertexVec = assocVertex->at(npfp.key());
     if (vertexVec.size()>0){
       double xyz[3];
@@ -594,6 +712,8 @@ void LeeSimRecoTest::analyze(art::Event const & e)
     mypfelhits.push_back( std::vector<int>() );
     mypftotprhits.push_back( std::vector<int>() );
     mypftotpihits.push_back( std::vector<int>() );
+    mypftotnphits.push_back( std::vector<int>() );
+    mypftotnehits.push_back( std::vector<int>() );
     mypfprhits.push_back( std::vector<int>() );
     mypfpihits.push_back( std::vector<int>() );
     mypfprid.push_back( std::vector<int>() );
@@ -605,23 +725,25 @@ void LeeSimRecoTest::analyze(art::Event const & e)
     mypfvtxy.push_back( std::vector<float>() );
     mypfvtxz.push_back( std::vector<float>() );
     /// std::cout << "neutrino pfp pdg=" << npfp->PdgCode() << " and nDaughters=" << npfp->NumDaughters() << std::endl;
-    std::vector<size_t> dpfps = npfp->Daughters();
+    std::vector<size_t> dpfps = pfpDaughtersKey(npfp,inputPfParticle);
     // include also pfps one more layer down in the hierarchy (secondaries)
     for (unsigned int ipf : dpfps) {
       art::Ptr<recob::PFParticle> ppfp(inputPfParticle,ipf);
-      const std::vector<size_t>& dpfps_tmp = ppfp->Daughters();
+      const std::vector<size_t>& dpfps_tmp = pfpDaughtersKey(ppfp,inputPfParticle);
       for (auto k : dpfps_tmp) dpfps.push_back(k);
     }
     // if it's not THE neutrino, need to add the primary as well
-    if (isTheNeutrino==false) dpfps.push_back(inpf);
+    if (isTheNeutrino==false) dpfps.push_back(npfp.key());
     // now let's go over primaries and secondaries
     for (unsigned int ipf : dpfps) {
       int npfhits = 0;
       int nelehitsPF = 0;
       std::vector<int> nprohitsPF(ppro.size(),0);
       std::vector<int> npiohitsPF(ppio.size(),0);
+      int nnpihitsPF = 0;
+      int nneuhitsPF = 0;
       art::Ptr<recob::PFParticle> ppfp(inputPfParticle,ipf);
-      incrementCounts(ppfp, assocCluster, assocHit, assocMCPart, swrid, proid, pioid, npfhits, nelehitsPF, nprohitsPF, npiohitsPF);
+      incrementCounts(ppfp, assocCluster, assocHit, assocMCPart, swrid, proid, pioid, npiid, neuid, npfhits, nelehitsPF, nprohitsPF, npiohitsPF, nnpihitsPF, nneuhitsPF);
       //
       int countprohitsPF = 0;
       int inpr = 0;
@@ -655,6 +777,8 @@ void LeeSimRecoTest::analyze(art::Event const & e)
       mypfelhits.back().push_back(nelehitsPF);
       mypftotprhits.back().push_back(countprohitsPF);
       mypftotpihits.back().push_back(countpiohitsPF);
+      mypftotnphits.back().push_back(nnpihitsPF);
+      mypftotnehits.back().push_back(nneuhitsPF);
       mypfnpr.back().push_back(inprn);
       mypfnpi.back().push_back(inpin);
       //
@@ -688,6 +812,8 @@ void LeeSimRecoTest::analyze(art::Event const & e)
   nelhitscr = mynelhitscr;
   ntotprhitscr = myntotprhitscr;
   ntotpihitscr = myntotpihitscr;
+  ntotnphitscr = myntotnphitscr;
+  ntotnehitscr = myntotnehitscr;
   nprhitscr = mynprhitscr;
   npihitscr = mynpihitscr;
   //
@@ -699,11 +825,19 @@ void LeeSimRecoTest::analyze(art::Event const & e)
   nuvtxy = mynuvtxy;
   nuvtxz = mynuvtxz;
   nupftothits = mynupftothits;
+  nusltothits = mynusltothits;
+  nuslelhits = mynuslelhits;
+  nusltotprhits = mynusltotprhits;
+  nusltotpihits = mynusltotpihits;
+  nusltotnphits = mynusltotnphits;
+  nusltotnehits = mynusltotnehits;
   pfpdg = mypfpdg;
   pfhits = mypfhits;
   pfelhits = mypfelhits;
   pftotprhits = mypftotprhits;
   pftotpihits = mypftotpihits;
+  pftotnphits = mypftotnphits;
+  pftotnehits = mypftotnehits;
   pfprhits = mypfprhits;
   pfpihits = mypfpihits;
   pfprid = mypfprid;
@@ -732,8 +866,8 @@ void LeeSimRecoTest::incrementCounts(const art::Ptr<recob::PFParticle> ppfp,
 				     const std::unique_ptr<art::FindManyP<recob::Cluster> >& assocCluster,
 				     const std::unique_ptr<art::FindManyP<recob::Hit> >& assocHit,
 				     const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& assocMCPart,
-				     const std::vector<int>& swrid, const std::vector<int>& proid, const std::vector<int>& pioid,
-				     int& npfhits, int& nelehitsPF, std::vector<int>& nprohitsPF, std::vector<int>& npiohitsPF) const
+				     const std::vector<int>& swrid, const std::vector<int>& proid, const std::vector<int>& pioid, const std::vector<int>& npiid, const std::vector<int>& neuid,
+				     int& npfhits, int& nelehitsPF, std::vector<int>& nprohitsPF, std::vector<int>& npiohitsPF, int& nnpihitsPF, int& nneuhitsPF) const
 {
   const std::vector<art::Ptr<recob::Cluster> >& clustVec = assocCluster->at(ppfp.key());
   for (unsigned int icl=0; icl<clustVec.size(); icl++) {
@@ -767,10 +901,65 @@ void LeeSimRecoTest::incrementCounts(const art::Ptr<recob::PFParticle> ppfp,
 	  }
 	  npiohitsPF[std::find(pioid.begin(),pioid.end(),mcp->TrackId())-pioid.begin()]++;
 	  break;
+	} else if (std::find(npiid.begin(),npiid.end(),mcp->TrackId())!=npiid.end()) {
+	  nnpihitsPF++;
+	  break;
+	} else if (std::find(neuid.begin(),neuid.end(),mcp->TrackId())!=neuid.end()) {
+	  nneuhitsPF++;
+	  break;
 	}
       }
     }
   }
+}
+
+void LeeSimRecoTest::countSliceHits(const std::vector<art::Ptr<recob::Hit> >& hits,
+				    const std::unique_ptr<art::FindManyP<simb::MCParticle,anab::BackTrackerHitMatchingData> >& assocMCPart,
+				    const std::vector<int>& swrid, const std::vector<int>& proid, const std::vector<int>& pioid, const std::vector<int>& npiid, const std::vector<int>& neuid,
+				    int& nelehitsPF, int& nprohitsPF, int& npiohitsPF, int& nnpihitsPF, int& nneuhitsPF) const
+{
+  for (unsigned int ih=0; ih<hits.size(); ih++) {
+    art::Ptr<recob::Hit> hitp = hits[ih];
+    auto assmcp = assocMCPart->at(hitp.key());
+    auto assmdt = assocMCPart->data(hitp.key());
+    for (unsigned int ia=0; ia<assmcp.size(); ++ia) {
+      auto mcp = assmcp[ia];
+      auto amd = assmdt[ia];
+      if (amd->isMaxIDE!=1) continue;
+      if (std::find(swrid.begin(),swrid.end(),mcp->TrackId())!=swrid.end()) {
+	nelehitsPF++;
+	break;
+      } else if (std::find(proid.begin(),proid.end(),mcp->TrackId())!=proid.end()) {
+	nprohitsPF++;
+	break;
+      } else if (std::find(pioid.begin(),pioid.end(),mcp->TrackId())!=pioid.end()) {
+	npiohitsPF++;
+	break;
+      } else if (std::find(npiid.begin(),npiid.end(),mcp->TrackId())!=npiid.end()) {
+	nnpihitsPF++;
+      } else if (std::find(neuid.begin(),neuid.end(),mcp->TrackId())!=neuid.end()) {
+	nneuhitsPF++;
+	break;
+      }
+    }
+  }
+}
+
+std::vector<size_t> LeeSimRecoTest::pfpDaughtersKey(const art::Ptr<recob::PFParticle> ppfp,
+						    art::ValidHandle<std::vector<recob::PFParticle> > inputPfParticle) {
+  std::vector<size_t> result;
+  // Daugthers returns the id as in pfp->Self() not the key
+  // so need to find the key for the pfp with Self==ipfd
+  auto& pfd = ppfp->Daughters();
+  for (auto ipfd : pfd) {
+    for (size_t jPF = 0; jPF < inputPfParticle->size(); ++jPF) {
+      art::Ptr<recob::PFParticle> pfpd(inputPfParticle, jPF);
+      if (pfpd->Self()!=ipfd) continue;
+      result.push_back(pfpd.key());
+      break;
+    }
+  }
+  return result;
 }
 
 DEFINE_ART_MODULE(LeeSimRecoTest)
