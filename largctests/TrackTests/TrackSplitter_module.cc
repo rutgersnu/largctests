@@ -50,6 +50,8 @@ public:
 
   recob::Cluster BuildCluster(const int id, const art::PtrVector<recob::Hit> &hitVector, cluster::ClusterParamsAlgBase &algo);
 
+  bool isFromNeutrino(art::ValidHandle<std::vector<recob::PFParticle> > pfph, size_t ipfp);
+
   // Required functions.
   void produce(art::Event & e) override;
 
@@ -101,6 +103,9 @@ void TrackSplitter::produce(art::Event & e)
   auto const& tkHitsAssn = *e.getValidHandle<art::Assns<recob::Track, recob::Hit> >(pfParticleInputTag);
   //
   for (unsigned int iPF = 0; iPF < inputPFParticle->size(); ++iPF) {
+    //
+    // only pfps from neutrino
+    // if (isFromNeutrino(inputPFParticle,iPF)==false) continue;
     //
     const recob::PFParticle& pf = inputPFParticle->at(iPF);
     recob::PFParticle outPF(pf);//copy PFParticle hierarchy, but need to remake tracks and clusters
@@ -288,6 +293,20 @@ recob::Cluster TrackSplitter::BuildCluster(const int id, const art::PtrVector<re
   // create the recob::Cluster directly in the vector
   return cluster::ClusterCreator(algo,startWire,sigmaStartWire,startTime,sigmaStartTime,
 				 endWire,sigmaEndWire,endTime,sigmaEndTime,id,view,planeID,recob::Cluster::Sentry).move();
+}
+
+bool TrackSplitter::isFromNeutrino(art::ValidHandle<std::vector<recob::PFParticle> > pfph, size_t ipfp) {
+  const recob::PFParticle& pf = pfph->at(ipfp);
+  if (pf.IsPrimary() && std::abs(pf.PdgCode())!=12 && std::abs(pf.PdgCode())!=14 && std::abs(pf.PdgCode())!=16) return false;
+  if (pf.IsPrimary()) return true;
+  size_t parentid = pf.Parent();
+  for (unsigned int iPF = 0; iPF < pfph->size(); ++iPF) {
+    const recob::PFParticle& parent = pfph->at(iPF);
+    if (parent.Self()!=parentid) continue;
+    return isFromNeutrino(pfph,iPF);
+  }
+  std::cout << "argh you should never end up here... " << __FILE__ << " " << __FUNCTION__ << " " << __LINE__ << std::endl;
+  return false;
 }
 
 DEFINE_ART_MODULE(TrackSplitter)

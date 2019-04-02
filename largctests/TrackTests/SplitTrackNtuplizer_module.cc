@@ -63,6 +63,10 @@ public:
   // Required functions.
   void analyze(art::Event const & e) override;
 
+  bool isFromNeutrino(art::ValidHandle<std::vector<recob::PFParticle> > pfph, size_t ipfp);
+
+  size_t keyFromId(art::ValidHandle<std::vector<recob::PFParticle> > pfph, size_t id);
+
   void beginJob() override;
   void resetTree();
 private:
@@ -697,7 +701,8 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
   //
   art::InputTag SimTrackInputTag("mcreco");
   const std::vector<sim::MCTrack>* simTracks = 0;
-  if (e.isRealData()==0) {
+  art::Handle<std::vector<sim::MCTrack> > test;
+  if (/*e.isRealData()==0 ||*/ e.getByLabel(SimTrackInputTag,test)) {
     simTracks = e.getValidHandle<std::vector<sim::MCTrack> >(SimTrackInputTag).product();
   }
   //
@@ -706,10 +711,14 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
   cout << inputTracksLabel << " " << inputTracksLabel1st << " " << inputTracksLabel2nd << endl;
   for (unsigned int iPF = 0; iPF < inputPFParticle->size(); ++iPF) {
     //
+    // only pfps from neutrino
+    // std::cout << "ipf=" << iPF << " self=" << inputPFParticle->at(iPF).Self() << " pdg=" << inputPFParticle->at(iPF).PdgCode() << " fromNu=" << isFromNeutrino(inputPFParticle,iPF) << std::endl;
+    if (isFromNeutrino(inputPFParticle,iPF)==false) continue;
+    //
     const std::vector<art::Ptr<recob::Track> >& Tracks = assocTracks->at(iPF);
     auto const& tkHitsAssn = *e.getValidHandle<art::Assns<recob::Track, recob::Hit> >(TrackInputTag);
     //    
-    cout << "pf #" << iPF << " Ntracks=" << Tracks.size() << " primary=" << inputPFParticle->at(iPF).IsPrimary() << " parent=" << inputPFParticle->at(iPF).Parent() << endl;
+    // cout << "pf #" << iPF << " Ntracks=" << Tracks.size() << " primary=" << inputPFParticle->at(iPF).IsPrimary() << " parent=" << inputPFParticle->at(iPF).Parent() << endl;
     //
     for (unsigned int iTrack = 0; iTrack < Tracks.size(); ++iTrack) {
       //
@@ -724,12 +733,12 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
       if (inputPFParticle->at(iPF).IsPrimary()==0) {
 	auto parentPF = inputPFParticle->at(iPF).Parent();
 	int nvtxtk = 0;
-	for (auto idaug : inputPFParticle->at(parentPF).Daughters()) {
-	  if (inputPFParticle->at(idaug).PdgCode()!=13) continue;
+	for (auto idaug : inputPFParticle->at( keyFromId(inputPFParticle,parentPF) ).Daughters()) {
+	  if (inputPFParticle->at( keyFromId(inputPFParticle,idaug) ).PdgCode()!=13) continue;
 	  nvtxtk++;
 	}
 	if (nvtxtk>1) {
-	  const std::vector<art::Ptr<recob::Vertex> >& parentVertices = assocVertices->at(parentPF);
+	  const std::vector<art::Ptr<recob::Vertex> >& parentVertices = assocVertices->at( keyFromId(inputPFParticle,parentPF) );
 	  for (unsigned int iVertex = 0; iVertex < parentVertices.size(); ++iVertex) {
 	    art::Ptr<recob::Vertex> pvertex = parentVertices[iVertex];
 	    double xyz[3];
@@ -742,8 +751,8 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
 	  vx_pos.push_back(vertex.Z());
 	  vx_ntks = nvtxtk;
 	  int dcount = 0;
-	  for (auto idaug : inputPFParticle->at(parentPF).Daughters()) {
-	    if (inputPFParticle->at(idaug).PdgCode()!=13) continue;
+	  for (auto idaug : inputPFParticle->at( keyFromId(inputPFParticle,parentPF) ).Daughters()) {
+	    if (inputPFParticle->at( keyFromId(inputPFParticle,idaug) ).PdgCode()!=13) continue;
 	    if (idaug == inputPFParticle->at(iPF).Self()) break;
 	    dcount++;
 	  }
@@ -758,14 +767,16 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
 	if (it->first == ptrack) inHits_tk.push_back(it->second);
 	else if (inHits_tk.size()>0) break;
       }
-      //cout << inHits_tk.size() << endl;
+      // cout << "inHits_tk.size()=" <<  inHits_tk.size() << endl;
       //
       auto id = ptrack->ID();
       //
       const recob::Track* ptrack1 = 0;
       std::vector<art::Ptr<recob::Hit> > inHits_tk1;
+      // std::cout << "Tracks1st->size()=" << Tracks1st->size() << std::endl;
       for (unsigned int iTrack1 = 0; iTrack1 < Tracks1st->size(); ++iTrack1) {
 	art::Ptr<recob::Track> ptrack1tmp(Tracks1st, iTrack1);
+	// std::cout << "ptrack1tmp->ID()=" << ptrack1tmp->ID() << " id=" << id << std::endl;
 	if (ptrack1tmp->ID()!=id) continue;
 	if (ptrack1tmp->CountValidPoints()<3) continue;
 	ptrack1 = ptrack1tmp.get();
@@ -820,6 +831,7 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
       std::vector<art::Ptr<recob::Hit> > inHits_tk2;
       for (unsigned int iTrack2 = 0; iTrack2 < Tracks2nd->size(); ++iTrack2) {
 	art::Ptr<recob::Track> ptrack2tmp(Tracks2nd, iTrack2);
+	// std::cout << "ptrack2tmp->ID()=" << ptrack2tmp->ID() << " id=" << id << std::endl;
 	if (ptrack2tmp->ID()!=id) continue;
 	if (ptrack2tmp->CountValidPoints()<3) continue;
 	ptrack2 = ptrack2tmp.get();
@@ -1202,7 +1214,7 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
       Point_t mcstart, mcend;
       Vector_t mcstartmom, mcendmom;
       Vector_t mcstartdir, mcenddir;
-      if (e.isRealData()==0) {
+      if (simTracks!=0) {
 	for (unsigned int iMC = 0; iMC < (simTracks)->size(); ++iMC) {
 	  const sim::MCTrack& mctrack = (simTracks)->at(iMC);
 	  //
@@ -1545,6 +1557,32 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
     }
     //
   }
+  //
+}
+
+bool SplitTrackNtuplizer::isFromNeutrino(art::ValidHandle<std::vector<recob::PFParticle> > pfph, size_t ipfp) {
+  const recob::PFParticle& pf = pfph->at(ipfp);
+  if (pf.IsPrimary() && std::abs(pf.PdgCode())!=12 && std::abs(pf.PdgCode())!=14 && std::abs(pf.PdgCode())!=16) return false;
+  if (pf.IsPrimary()) return true;
+  size_t parentid = pf.Parent();
+  for (unsigned int iPF = 0; iPF < pfph->size(); ++iPF) {
+    const recob::PFParticle& parent = pfph->at(iPF);
+    if (parent.Self()!=parentid) continue;
+    return isFromNeutrino(pfph,iPF);
+  }
+  std::cout << "argh you should never end up here... " << __FILE__ << " " << __FUNCTION__ << " " << __LINE__ << std::endl;
+  return false;
+}
+
+size_t SplitTrackNtuplizer::keyFromId(art::ValidHandle<std::vector<recob::PFParticle> > pfph, size_t id) {
+  //
+  for (unsigned int iPF = 0; iPF < pfph->size(); ++iPF) {
+    const recob::PFParticle& pfp = pfph->at(iPF);
+    if (pfp.Self()!=id) continue;
+    return iPF;
+  }
+  std::cout << "argh you should never end up here... " << __FILE__ << " " << __FUNCTION__ << " " << __LINE__ << std::endl;
+  return 99999;
   //
 }
 

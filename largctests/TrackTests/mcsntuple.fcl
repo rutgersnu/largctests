@@ -39,14 +39,14 @@ physics: {
        @table::mcsfitproducer
        module_label: pandoraMCSFitMu2
        inputs: {
-          inputLabel: pandoraTrack
+          inputLabel: pandora
        }
     }
     pandoraMCSFitMu2p1: {
        @table::mcsfitproducer
        module_label: pandoraMCSFitMu2p1
        inputs: {
-          inputLabel: pandoraTrack
+          inputLabel: pandora
        }
        fitter: {
           @table::mcsfitproducer.fitter
@@ -57,7 +57,7 @@ physics: {
        @table::mcsfitproducer
        module_label: pandoraMCSFitMu2
        inputs: {
-          inputLabel: pandoraTrack
+          inputLabel: pandora
        }
        fitter: {
     	 @table::mcsfitproducer.fitter 
@@ -68,7 +68,7 @@ physics: {
        @table::mcsfitproducer
        module_label: pandoraMCSFitMu2
        inputs: {
-          inputLabel: pandoraTrack
+          inputLabel: pandora
        }
        fitter: {
          @table::mcsfitproducer.fitter
@@ -79,7 +79,7 @@ physics: {
        @table::mcsfitproducer
        module_label: pandoraMCSFitP2
        inputs: {
-          inputLabel: pandoraTrack
+          inputLabel: pandora
        }
        fitter: {
          @table::mcsfitproducer.fitter
@@ -108,7 +108,7 @@ physics: {
       module_label: TrajectoryMCSNtuple
       module_type:  TrajectoryMCSNtuple
       inputs: {
-           inputLabel: pandoraTrack
+           inputLabel: pandora
            MuMCSLabel: pandoraMCSFitMu2
            PMCSLabel: pandoraMCSFitP2
       }
@@ -122,7 +122,7 @@ physics: {
       module_label: TrajectoryMCSNtuple
       module_type:  TrajectoryMCSNtuple
       inputs: {
-           inputLabel: pandoraTrack
+           inputLabel: pandora
            MuMCSLabel: pandoraMCSFitMu2p1
            PMCSLabel: pandoraMCSFitP2
       }
@@ -140,7 +140,7 @@ physics: {
       module_label: TrajectoryMCSNtuple
       module_type:  TrajectoryMCSNtuple
       inputs: {
-           inputLabel: pandoraTrack
+           inputLabel: pandora
            MuMCSLabel: pandoraMCSFitMu3
            PMCSLabel: pandoraMCSFitP2
       }
@@ -158,7 +158,7 @@ physics: {
       module_label: TrajectoryMCSNtuple
       module_type:  TrajectoryMCSNtuple
       inputs: {
-           inputLabel: pandoraTrack
+           inputLabel: pandora
            MuMCSLabel: pandoraMCSFitMu4
            PMCSLabel: pandoraMCSFitP2
       }

@@ -25,6 +25,7 @@
 #include "canvas/Persistency/Common/FindManyP.h"
 #include "lardataobj/MCBase/MCTrack.h"
 #include "lardataobj/RecoBase/Track.h"
+#include "lardataobj/RecoBase/PFParticle.h"
 #include "lardataobj/RecoBase/MCSFitResult.h"
 
 #include "lardata/RecoObjects/TrackingPlaneHelper.h"
@@ -91,6 +92,8 @@ public:
   void beginJob() override;
 
   void resetTree();
+
+  bool isPfpFromNeutrino(art::ValidHandle<std::vector<recob::PFParticle> > pfph, size_t ipfp);
 
 private:
 
@@ -560,9 +563,10 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
   using namespace recob::tracking;
 
   art::ValidHandle<std::vector<sim::MCTrack> >* simTracks = 0;
-  if (e.isRealData()==0) {
+  art::Handle<std::vector<sim::MCTrack> > test;
+  art::InputTag SimTrackInputTag("mcreco");
+  if (/*e.isRealData()==0*/ e.getByLabel(SimTrackInputTag,test)) {
     //std::cout << __FILE__ << " " << __LINE__ << std::endl;
-    art::InputTag SimTrackInputTag("mcreco");
     try {
       simTracks = new art::ValidHandle<std::vector<sim::MCTrack> >(e.getValidHandle<std::vector<sim::MCTrack> >(SimTrackInputTag));
     } catch (...) {
@@ -572,7 +576,10 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
     //std::cout << __FILE__ << " " << __LINE__ << std::endl;
   }
 
+  art::InputTag PFInputTag("pandora");
   art::InputTag TrackInputTag(inputTracksLabel);
+  art::ValidHandle<std::vector<recob::PFParticle> > Pfps = e.getValidHandle<std::vector<recob::PFParticle> >(PFInputTag);
+  auto const& assocTracks = *e.getValidHandle<art::Assns<recob::PFParticle, recob::Track> >(TrackInputTag);
   art::ValidHandle<std::vector<recob::Track> > Tracks = e.getValidHandle<std::vector<recob::Track> >(TrackInputTag);
   //
   art::InputTag MuMCSInputTag(MuMCSLabel);
@@ -590,6 +597,15 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
     const recob::Track& track = Tracks->at(iTrack);
     const recob::MCSFitResult& mcsMu = MCSMu->at(iTrack);
     const recob::MCSFitResult& mcsP = MCSP->at(iTrack);
+
+    size_t assocpfpkey = 99999;
+    for (auto at : assocTracks) {
+      if (at.second.key()==iTrack) {
+	assocpfpkey = at.first.key();
+	break;
+      }
+    }
+    if (isPfpFromNeutrino(Pfps,assocpfpkey)==false) continue;
     // std::vector<const anab::ParticleID*> pids = AssPid.at(iTrack);
     //
     resetTree();
@@ -815,7 +831,7 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
     //   }
     // }
     //
-    if (e.isRealData()==0) {
+    if (simTracks!=0) {
       for (unsigned int iMC = 0; iMC < (*simTracks)->size(); ++iMC) {
 	const sim::MCTrack& mctrack = (*simTracks)->at(iMC);
 	//
@@ -1061,7 +1077,21 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e)
     tree->Fill();
     //
   }
-  if (e.isRealData()==0) delete simTracks;
+  if (simTracks!=0) delete simTracks;
+}
+
+bool TrajectoryMCSNtuple::isPfpFromNeutrino(art::ValidHandle<std::vector<recob::PFParticle> > pfph, size_t ipfp) {
+  const recob::PFParticle& pf = pfph->at(ipfp);
+  if (pf.IsPrimary() && std::abs(pf.PdgCode())!=12 && std::abs(pf.PdgCode())!=14 && std::abs(pf.PdgCode())!=16) return false;
+  if (pf.IsPrimary()) return true;
+  size_t parentid = pf.Parent();
+  for (unsigned int iPF = 0; iPF < pfph->size(); ++iPF) {
+    const recob::PFParticle& parent = pfph->at(iPF);
+    if (parent.Self()!=parentid) continue;
+    return isPfpFromNeutrino(pfph,iPF);
+  }
+  std::cout << "argh you should never end up here... " << __FILE__ << " " << __FUNCTION__ << " " << __LINE__ << std::endl;
+  return false;
 }
 
 DEFINE_ART_MODULE(TrajectoryMCSNtuple)

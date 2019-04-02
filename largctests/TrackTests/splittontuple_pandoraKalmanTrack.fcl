@@ -21,6 +21,20 @@ source: {
   maxEvents:  -1            # number of events to read
 } # source
 
+outputs:{
+   out1: {
+      compressionLevel: 1
+      dataTier: "reconstructed"
+      fastCloning: true
+      fileName: "test.root"
+      module_type: "RootOutput"
+      saveMemoryObjectThreshold: 0
+      #outputCommands: ["drop *_*_*_*",
+      #	                "keep *_gaushit_*_*",
+      #                 "keep *_*_*_TrackMaker"]
+   }
+}
+
 trackSplit: {
   module_type: TrackSplitter
   module_label: trackSplit
@@ -69,6 +83,8 @@ physics: {
 
   ana:  [ splitTrackNtuplizerKalmanTrackHalf10 ]
 
+  #stream1: [ out1 ]
+
   trigger_paths: [ pro ]
   end_paths:     [ ana ]
 
@@ -79,10 +95,14 @@ physics.producers.trackSplitHalf1Gap10.midPointHalfGap: 10
 physics.producers.trackSplitHalf2Gap10.hitSubsetMode: 4
 physics.producers.trackSplitHalf2Gap10.midPointHalfGap: 10
 physics.producers.pandoraKalmanTrackHalf1Gap10.inputCollection: "trackSplitHalf1Gap10"
+physics.producers.pandoraKalmanTrackHalf1Gap10.trackInputTag: "trackSplitHalf1Gap10"
 physics.producers.pandoraKalmanTrackHalf2Gap10.inputCollection: "trackSplitHalf2Gap10"
+physics.producers.pandoraKalmanTrackHalf2Gap10.trackInputTag: "trackSplitHalf2Gap10"
 physics.analyzers.splitTrackNtuplizerKalmanTrackHalf10.inputTracksLabel:    pandoraKalmanTrack
 physics.analyzers.splitTrackNtuplizerKalmanTrackHalf10.inputTracksLabel1st: pandoraKalmanTrackHalf1Gap10
 physics.analyzers.splitTrackNtuplizerKalmanTrackHalf10.inputTracksLabel2nd: pandoraKalmanTrackHalf2Gap10
+
+#physics.producers.pandoraKalmanTrackHalf1Gap10.trackMaker.fitter.dumpLevel: 10
 
 # Adjust the window/offset for the reduced total frame size (9600 -> 6400 ticks)
 services.DetectorPropertiesService.NumberTimeSamples: 6400

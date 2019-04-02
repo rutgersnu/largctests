@@ -2,8 +2,8 @@ BEGIN_PROLOG
 vertexsplitter: {
    module_type: VertexSplitter
       inputs: {
-      inputPFParticleLabel: "pandoraNu"
-      inputVertexLabel: "pandoraNuKTVertex"
+      inputPFParticleLabel: "pandora"
+      inputVertexLabel: "pandoraGeomVertexFit"
    }
    geom3dvtxfit: {
       debugLevel: 0

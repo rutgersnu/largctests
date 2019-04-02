@@ -3,10 +3,7 @@
 #include "trackproducerfrompfparticle.fcl"
 #include "vertexsplitter.fcl"
 
-#include "tpcneutrinoidfilter_microboone.fcl"
-#include "filters.fcl"
-
-#include "reco_uboone_mcc8_driver_common.fcl"
+#include "reco_uboone_mcc9_8.fcl"
 
 process_name: VtxSplit
 
@@ -45,28 +42,25 @@ outputs:{
 splitvertexntuplizer: {
   module_type:  SplitVertexNtuplizer
   module_label: SplitVertexNtuplizer
-  inputTracksLabel: "pandoraNuKalmanTrack"
-  inputVertexLabel: "pandoraNuKTVertex"
+  inputTracksLabel: "pandoraKalmanTrack"
+  inputVertexLabel: "pandoraGeomVertexFit"
   inputVertexLabel1st: "vertexsplitter:even"
   inputVertexLabel2nd: "vertexsplitter:odd"
 }
 
 physics: {
   producers: {
-     pandoraNuKalmanTrack: { @table::microboone_reco_mcc8_producers.pandoraNuKalmanTrack }
-     pandoraNuKTVertex: { @table::microboone_reco_mcc8_producers.pandoraNuKTVertex }
+     pandoraKalmanTrack: { @table::microboone_reco_mcc8_producers.pandoraKalmanTrack }
+     pandoraGeomVertexFit: { @table::microboone_reco_mcc8_producers.pandoraGeomVertexFit }
      vertexsplitter: @local::vertexsplitter
-     NuMuCCSelectionII:      @local::microboone_tpcNeutrinoID
   }
-  filters:  { tpcneutrinoidfilter : @local::microboone_tpcneutrinoidfilter }
   analyzers: { splitvertexntuplizer: @local::splitvertexntuplizer }
 
-  filt: [ NuMuCCSelectionII, tpcneutrinoidfilter ]
-  reco: [ pandoraNuKalmanTrack, pandoraNuKTVertex, vertexsplitter ]
+  reco: [ pandoraGeomVertexFit, vertexsplitter ]
   ana:  [ splitvertexntuplizer ]
   #stream1: [ out1 ]
 
-  trigger_paths: [ filt, reco ]
+  trigger_paths: [ reco ]
   #end_paths: [ ana, stream1 ]
   end_paths: [ ana ]
   #end_paths: [ stream1 ]

@@ -279,7 +279,7 @@ void SplitVertexNtuplizer::beginJob()
 SplitVertexNtuplizer::SplitVertexNtuplizer(fhicl::ParameterSet const & p)
   :
   EDAnalyzer(p),
-  inputPFLabel(p.get<art::InputTag>("inputPFLabel","pandoraNu")),
+  inputPFLabel(p.get<art::InputTag>("inputPFLabel","pandora")),
   inputTracksLabel(p.get<art::InputTag>("inputTracksLabel")),
   inputVertexLabel(p.get<art::InputTag>("inputVertexLabel")),
   inputVertexLabel1(p.get<art::InputTag>("inputVertexLabel1st")),
@@ -424,7 +424,8 @@ void SplitVertexNtuplizer::analyze(art::Event const & e)
   //
   art::InputTag McTruthInputTag("generator");
   const std::vector<simb::MCTruth>* mcTruth = 0;
-  if (e.isRealData()==0) {
+  art::Handle<std::vector<simb::MCTruth> > test;
+  if (/*e.isRealData()==0*/ e.getByLabel(McTruthInputTag,test)) {
     mcTruth = e.getValidHandle<std::vector<simb::MCTruth> >(McTruthInputTag).product();
   }
   //
@@ -554,7 +555,7 @@ void SplitVertexNtuplizer::analyze(art::Event const & e)
     //
     // MC
     //
-    if (e.isRealData()==0) {
+    if (mcTruth!=0) {
       Point_t nuvtxbare(mcTruth->at(0).GetNeutrino().Nu().Position().X(),mcTruth->at(0).GetNeutrino().Nu().Position().Y(),mcTruth->at(0).GetNeutrino().Nu().Position().Z());
       auto scecorr = SCE->GetPosOffsets(nuvtxbare);
       double g4Ticks = detClocks->TPCG4Time2Tick(mcTruth->at(0).GetNeutrino().Nu().T())+theDetector->GetXTicksOffset(0,0,0)-theDetector->TriggerOffset();
