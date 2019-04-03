@@ -88,6 +88,10 @@ public:
   // Required functions.
   void analyze(art::Event const & e) override;
 
+  bool isFromNeutrino(art::ValidHandle<std::vector<recob::PFParticle> > pfph, size_t ipfp);
+
+  size_t keyFromId(art::ValidHandle<std::vector<recob::PFParticle> > pfph, size_t id);
+
   void beginJob() override;
   void resetTree();
 private:
@@ -420,21 +424,22 @@ void FittedVertexNtuplizer::analyze(art::Event const & e)
   for (unsigned int iPF = 0; iPF < inputPFParticle->size(); ++iPF) {
     //
     art::Ptr<recob::PFParticle> pfp(inputPFParticle, iPF);
-    if (pfp->IsPrimary()==false || pfp->NumDaughters()<2) continue;
+    if (pfp->IsPrimary()==false || isFromNeutrino(inputPFParticle,iPF)==false || pfp->NumDaughters()<2) continue;
     //
     vector< art::Ptr<recob::Track> > pandora_tracks;
     vector< art::Ptr<recob::Track> > fitted_tracks;
     auto& pfd = pfp->Daughters();
     for (auto ipfd : pfd) {
-      art::Ptr<recob::PFParticle> pfpd(inputPFParticle, ipfd);
+      //
+      art::Ptr<recob::PFParticle> pfpd(inputPFParticle, keyFromId(inputPFParticle,ipfd) );
       //
       // pandora tracks
-      vector< art::Ptr<recob::Track> > patracks = assocTracks->at(ipfd);
+      vector< art::Ptr<recob::Track> > patracks = assocTracks->at(pfpd.key());
       for (auto t : patracks) {
 	pandora_tracks.push_back(t);
       }
       // kalmantrack tracks
-      vector< art::Ptr<recob::Track> > kftracks = assocFittedTracks->at(ipfd);
+      vector< art::Ptr<recob::Track> > kftracks = assocFittedTracks->at(pfpd.key());
       for (auto t : kftracks) {
 	fitted_tracks.push_back(t);
       }
@@ -570,6 +575,32 @@ void FittedVertexNtuplizer::analyze(art::Event const & e)
     //
     tree->Fill();
   }
+}
+
+bool FittedVertexNtuplizer::isFromNeutrino(art::ValidHandle<std::vector<recob::PFParticle> > pfph, size_t ipfp) {
+  const recob::PFParticle& pf = pfph->at(ipfp);
+  if (pf.IsPrimary() && std::abs(pf.PdgCode())!=12 && std::abs(pf.PdgCode())!=14 && std::abs(pf.PdgCode())!=16) return false;
+  if (pf.IsPrimary()) return true;
+  size_t parentid = pf.Parent();
+  for (unsigned int iPF = 0; iPF < pfph->size(); ++iPF) {
+    const recob::PFParticle& parent = pfph->at(iPF);
+    if (parent.Self()!=parentid) continue;
+    return isFromNeutrino(pfph,iPF);
+  }
+  std::cout << "argh you should never end up here... " << __FILE__ << " " << __FUNCTION__ << " " << __LINE__ << std::endl;
+  return false;
+}
+
+size_t FittedVertexNtuplizer::keyFromId(art::ValidHandle<std::vector<recob::PFParticle> > pfph, size_t id) {
+  //
+  for (unsigned int iPF = 0; iPF < pfph->size(); ++iPF) {
+    const recob::PFParticle& pfp = pfph->at(iPF);
+    if (pfp.Self()!=id) continue;
+    return iPF;
+  }
+  std::cout << "argh you should never end up here... " << __FILE__ << " " << __FUNCTION__ << " " << __LINE__ << std::endl;
+  return 99999;
+  //
 }
 
 DEFINE_ART_MODULE(FittedVertexNtuplizer)
