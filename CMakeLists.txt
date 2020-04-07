@@ -56,6 +56,7 @@ find_ups_product( range )
 find_ups_product( eigen )
 find_ups_product( larreco )
 find_ups_product( pandora v02_00_00 )
+find_ups_product( larpandora v08_03_00_10 )
 
 # macros for dictionary and simple_plugin
 include(ArtDictionary)

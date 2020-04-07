@@ -6,19 +6,20 @@ defaultqual	e17
 fcldir product_dir job
 #
 product         version
-larsim		v08_02_00_03a
-larreco         v08_04_00_03a
+larsim		v08_02_00_08
+larreco         v08_04_00_10
+larpandora      v08_03_00_10
 cetbuildtools	v7_04_00	-	only_for_build
 end_product_list
 
 # e17  - with gcc 6.3.0 and -std=c++14
-qualifier     larsim   	 larreco    notes
-e17:debug     e17:debug  e17:debug	
-e17:opt       e17:opt	 e17:opt	
-e17:prof      e17:prof	 e17:prof	
-c2:debug      c2:debug	 c2:debug	
-c2:opt        c2:opt	 c2:opt	
-c2:prof       c2:prof    c2:prof   
+qualifier     larsim   	 larreco   larpandora    notes
+e17:debug     e17:debug  e17:debug e17:debug
+e17:opt       e17:opt	 e17:opt   e17:opt
+e17:prof      e17:prof	 e17:prof  e17:prof
+c2:debug      c2:debug	 c2:debug  c2:debug
+c2:opt        c2:opt	 c2:opt	   c2:opt
+c2:prof       c2:prof    c2:prof   c2:prof
 end_qualifier_list
 
 # table fragment workaround for genie cling "error"

@@ -42,6 +42,10 @@
 #include "larreco/RecoAlg/TrajectoryMCSFitter.h"
 #include "larreco/RecoAlg/TrackMomentumCalculator.h"
 
+#include "lardataobj/AnalysisBase/T0.h"
+#include "larpandora/LArPandoraInterface/LArPandoraHelper.h"
+#include "lardataobj/RecoBase/PFParticleMetadata.h"
+
 #include "TH1.h"
 #include "TH2.h"
 #include "TTree.h"
@@ -86,6 +90,8 @@ private:
   //
   int    run, subrun, eventid;
   int passSelII;
+  float nuScore;
+  float fmScore;
   //
   // Original track
   //
@@ -276,6 +282,8 @@ void SplitTrackNtuplizer::beginJob()
   tree->Branch("subrun", &subrun, "subrun/I");
   tree->Branch("eventid", &eventid, "eventid/I");
   tree->Branch("passSelII", &passSelII, "passSelII/I");
+  tree->Branch("nuScore", &nuScore, "nuScore/F");
+  tree->Branch("fmScore", &fmScore, "fmScore/F");
   //
   // Original track
   //
@@ -474,6 +482,8 @@ void SplitTrackNtuplizer::resetTree() {
   subrun = -999;
   eventid = -999;
   passSelII = -999;
+  nuScore = -999;
+  fmScore = -999;
   //
   // Original track
   //  
@@ -678,6 +688,11 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
   art::ValidHandle<std::vector<recob::PFParticle> > inputPFParticle = e.getValidHandle<std::vector<recob::PFParticle> >(PFInputTag);
   auto assocTracks = std::unique_ptr<art::FindManyP<recob::Track> >(new art::FindManyP<recob::Track>(inputPFParticle, e, TrackInputTag));
   auto assocVertices = std::unique_ptr<art::FindManyP<recob::Vertex> >(new art::FindManyP<recob::Vertex>(inputPFParticle, e, PFInputTag));
+
+  art::FindManyP<larpandoraobj::PFParticleMetadata> pfPartToMetadataAssoc(inputPFParticle, e, PFInputTag);
+  art::InputTag fmtag("flashmatch");
+  art::FindManyP<anab::T0> pfp_t0_assn_v(inputPFParticle, e, fmtag);
+
   //
   art::InputTag TrackInputTag1st(inputTracksLabel1st);
   art::ValidHandle<std::vector<recob::Track> > Tracks1st = e.getValidHandle<std::vector<recob::Track> >(TrackInputTag1st);
@@ -705,18 +720,71 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
   if (/*e.isRealData()==0 ||*/ e.getByLabel(SimTrackInputTag,test)) {
     simTracks = e.getValidHandle<std::vector<sim::MCTrack> >(SimTrackInputTag).product();
   }
+
+  art::InputTag NuCCInputTag("NuCCproducer");
+  art::Handle<art::Assns<recob::PFParticle,anab::T0,void> > nucc_t0a;
+  e.getByLabel(NuCCInputTag, nucc_t0a);
+
+  // NuCC filtered events only
+  if (!nucc_t0a.isValid()) {
+    std::cout << ">>> No valid NuCC T0!" << std::endl;
+    return;
+  }
+
   //
   TrackMomentumCalculator tmc;
   //
   cout << inputTracksLabel << " " << inputTracksLabel1st << " " << inputTracksLabel2nd << endl;
   for (unsigned int iPF = 0; iPF < inputPFParticle->size(); ++iPF) {
+
+    if (!isFromNeutrino(inputPFParticle,iPF)) {
+      continue;
+    }
+    std::cout << ">>> PFP is from neutrino" << std::endl;
+
+    // Tracks must associated with the from the NuCC neutrino candidate PFP
+    bool nucc_nu = false;
+    for (auto ap : *nucc_t0a) {
+      if (ap.first.key() == iPF) {
+        nucc_nu = true;
+      }
+    }
+    if (!nucc_nu) continue;
+
+    // Extract neutrino scores
+    float _fmscore = -999;
+    float _topo_score = -999;
+    for (size_t ip=0; ip<inputPFParticle->size(); ip++) {
+      auto const& pfp = inputPFParticle->at(ip);
+
+      if (!pfp.IsPrimary()) continue;
+      if (!(std::abs(pfp.PdgCode()) == 12 || std::abs(pfp.PdgCode()) == 14 || std::abs(pfp.PdgCode()) == 16)) continue;
+
+      const std::vector<art::Ptr<larpandoraobj::PFParticleMetadata> >& pfParticleMetadataList(pfPartToMetadataAssoc.at(ip));
+      if (!pfParticleMetadataList.empty()) {
+        for (unsigned int j=0; j<pfParticleMetadataList.size(); j++) {
+          const art::Ptr<larpandoraobj::PFParticleMetadata>& pfParticleMetadata(pfParticleMetadataList.at(j));
+          const larpandoraobj::PFParticleMetadata::PropertiesMap& pfParticlePropertiesMap(pfParticleMetadata->GetPropertiesMap());
+          if (pfParticlePropertiesMap.find("NuScore") != pfParticlePropertiesMap.end()) {
+            _topo_score = pfParticlePropertiesMap.at("NuScore");
+          }
+        }
+      }
+
+      _fmscore = pfp_t0_assn_v.at(ip).at(0)->TriggerConfidence();
+    }
+
+    std::cout << "!! topo " << _topo_score << ", flash " << _fmscore << std::endl;
+
     //
     // only pfps from neutrino
     // std::cout << "ipf=" << iPF << " self=" << inputPFParticle->at(iPF).Self() << " pdg=" << inputPFParticle->at(iPF).PdgCode() << " fromNu=" << isFromNeutrino(inputPFParticle,iPF) << std::endl;
-    if (isFromNeutrino(inputPFParticle,iPF)==false) continue;
     //
     const std::vector<art::Ptr<recob::Track> >& Tracks = assocTracks->at(iPF);
     auto const& tkHitsAssn = *e.getValidHandle<art::Assns<recob::Track, recob::Hit> >(TrackInputTag);
+
+    std::cout << ">>> got " << Tracks.size() << " tracks" << std::endl;
+
     //    
     // cout << "pf #" << iPF << " Ntracks=" << Tracks.size() << " primary=" << inputPFParticle->at(iPF).IsPrimary() << " parent=" << inputPFParticle->at(iPF).Parent() << endl;
     //
@@ -727,6 +795,10 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
       run = e.run();
       subrun = e.subRun();
       eventid = e.event();
+
+      nuScore = _topo_score;
+      fmScore = _fmscore;
+
       // passSelII = filter->at(ftp).accept();
       //
       Point_t vertex;
@@ -757,7 +829,7 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
 	    dcount++;
 	  }
 	  vx_tkid = dcount;
-	  //cout << "pf vertex " << vertex << " vx_ntks=" << vx_ntks << " vx_tkid=" << vx_tkid << endl;
+	  cout << "pf vertex " << vertex << " vx_ntks=" << vx_ntks << " vx_tkid=" << vx_tkid << endl;
 	}
       }
       //
@@ -767,17 +839,17 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
 	if (it->first == ptrack) inHits_tk.push_back(it->second);
 	else if (inHits_tk.size()>0) break;
       }
-      // cout << "inHits_tk.size()=" <<  inHits_tk.size() << endl;
+      cout << "inHits_tk.size()=" <<  inHits_tk.size() << endl;
       //
       auto id = ptrack->ID();
       //
       const recob::Track* ptrack1 = 0;
       std::vector<art::Ptr<recob::Hit> > inHits_tk1;
-      // std::cout << "Tracks1st->size()=" << Tracks1st->size() << std::endl;
+      std::cout << "Tracks1st->size()=" << Tracks1st->size() << std::endl;
       for (unsigned int iTrack1 = 0; iTrack1 < Tracks1st->size(); ++iTrack1) {
 	art::Ptr<recob::Track> ptrack1tmp(Tracks1st, iTrack1);
-	// std::cout << "ptrack1tmp->ID()=" << ptrack1tmp->ID() << " id=" << id << std::endl;
-	if (ptrack1tmp->ID()!=id) continue;
+	std::cout << "ptrack1tmp->ID()=" << ptrack1tmp->ID() << " id=" << id << ", validPoints=" << ptrack1tmp->CountValidPoints() << std::endl;
+	//if (ptrack1tmp->ID()!=id) continue;
 	if (ptrack1tmp->CountValidPoints()<3) continue;
 	ptrack1 = ptrack1tmp.get();
 	for (auto it = tkHitsAssn1st.begin(); it!=tkHitsAssn1st.end(); ++it) {
@@ -823,7 +895,7 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
 	  vx1_ntks = ntrk;
 	  vx1_tkid = tkid;
 	  vx1_dist = mindist1;
-	  //cout << "vertex1=" << vertex1 << " track start=" << ptrack1->Trajectory().Start() << " vx1_ntks=" << vx1_ntks << " vx1_tkid=" << vx1_tkid << endl;
+	  cout << "vertex1=" << vertex1 << " track start=" << ptrack1->Trajectory().Start() << " vx1_ntks=" << vx1_ntks << " vx1_tkid=" << vx1_tkid << endl;
 	}
       }
       //
@@ -831,8 +903,8 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
       std::vector<art::Ptr<recob::Hit> > inHits_tk2;
       for (unsigned int iTrack2 = 0; iTrack2 < Tracks2nd->size(); ++iTrack2) {
 	art::Ptr<recob::Track> ptrack2tmp(Tracks2nd, iTrack2);
-	// std::cout << "ptrack2tmp->ID()=" << ptrack2tmp->ID() << " id=" << id << std::endl;
-	if (ptrack2tmp->ID()!=id) continue;
+	std::cout << "ptrack2tmp->ID()=" << ptrack2tmp->ID() << " id=" << id << std::endl;
+	//if (ptrack2tmp->ID()!=id) continue;
 	if (ptrack2tmp->CountValidPoints()<3) continue;
 	ptrack2 = ptrack2tmp.get();
 	for (auto it = tkHitsAssn2nd.begin(); it!=tkHitsAssn2nd.end(); ++it) {
@@ -878,11 +950,11 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
 	  vx2_ntks = ntrk;
 	  vx2_tkid = tkid;
 	  vx2_dist = mindist2;
-	  //cout << "vertex2=" << vertex2 << " track start=" << ptrack2->Trajectory().Start() << " vx2_ntks=" << vx2_ntks << " vx2_tkid=" << vx2_tkid << endl;
+	  cout << "vertex2=" << vertex2 << " track start=" << ptrack2->Trajectory().Start() << " vx2_ntks=" << vx2_ntks << " vx2_tkid=" << vx2_tkid << endl;
 	}
       }
       //
-      if (ptrack1==0 || ptrack2==0) continue;
+      if (ptrack1==0 || ptrack2==0) { std::cout << "lost the tracks... " << ptrack1 << " " << ptrack2 << std::endl; continue; }
       //
       // Original track
       //
@@ -1552,6 +1624,7 @@ void SplitTrackNtuplizer::analyze(art::Event const & e)
 	}
       }//if (mctk)
       //
+      std::cout << ">>> filling the tree" << std::endl;
       tree->Fill();
       //
     }

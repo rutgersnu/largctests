@@ -1,5 +1,7 @@
 
 include_directories ( $ENV{G4INCLUDE} )
+include_directories( $ENV{PANDORA_INC} )
+include_directories( $ENV{LARPANDORACONTENT_INC} )
 
 art_make(  
           MODULE_LIBRARIES  larsim_Simulation 
@@ -7,6 +9,7 @@ art_make(
 			    lardata_RecoObjects
 			    lardataobj_RecoBase
 			    larcorealg_Geometry
+                            larpandora_LArPandoraInterface
 			    larcore_Geometry_Geometry_service
 			    lardataobj_AnalysisBase
 			    lardata_Utilities
@@ -35,6 +38,7 @@ art_make(
 			    larreco_RecoAlg_ClusterRecoUtil
 			    larreco_ClusterFinder
 			    ${ROOT_GENVECTOR}
+                            ${PANDORASDK}
          )
 
 install_headers()

@@ -31,6 +31,9 @@
 
 #include "larreco/ClusterFinder/ClusterCreator.h"
 #include "larreco/RecoAlg/ClusterRecoUtil/StandardClusterParamsAlg.h"
+#include "lardataobj/AnalysisBase/T0.h"
+#include "larpandora/LArPandoraInterface/LArPandoraHelper.h"
+#include "lardataobj/RecoBase/PFParticleMetadata.h"
 
 #include <memory>
 
@@ -99,139 +102,202 @@ void TrackSplitter::produce(art::Event & e)
   //
   art::ValidHandle<std::vector<recob::PFParticle> > inputPFParticle = e.getValidHandle<std::vector<recob::PFParticle> >(pfParticleInputTag);
   std::unique_ptr<art::FindManyP<recob::Track> >  assocTracks = std::unique_ptr<art::FindManyP<recob::Track> >(new art::FindManyP<recob::Track>(inputPFParticle, e, pfParticleInputTag));
+
+  art::FindManyP<larpandoraobj::PFParticleMetadata> pfPartToMetadataAssoc(inputPFParticle, e, pfParticleInputTag);
+
+  art::InputTag fmtag("flashmatch");
+  art::FindManyP<anab::T0> pfp_t0_assn_v(inputPFParticle, e, fmtag);
+
+  //auto const& assocTracks = *e.getValidHandle<art::Assns<recob::PFParticle, recob::Track> >(pfParticleInputTag);
+  //art::ValidHandle<std::vector<recob::Track> > Tracks = e.getValidHandle<std::vector<recob::Track> >(pfParticleInputTag);
+
   std::unique_ptr<art::FindManyP<recob::Vertex> > assocVertices = std::unique_ptr<art::FindManyP<recob::Vertex> >(new art::FindManyP<recob::Vertex>(inputPFParticle, e, pfParticleInputTag));
   auto const& tkHitsAssn = *e.getValidHandle<art::Assns<recob::Track, recob::Hit> >(pfParticleInputTag);
-  //
-  for (unsigned int iPF = 0; iPF < inputPFParticle->size(); ++iPF) {
-    //
-    // only pfps from neutrino
-    // if (isFromNeutrino(inputPFParticle,iPF)==false) continue;
-    //
-    const recob::PFParticle& pf = inputPFParticle->at(iPF);
-    recob::PFParticle outPF(pf);//copy PFParticle hierarchy, but need to remake tracks and clusters
-    //
-    outputPFs->emplace_back(std::move(outPF));
-    art::Ptr<recob::PFParticle> aptrpf = makePFParticlePtr(outputPFs->size()-1);
-    //
-    const std::vector<art::Ptr<recob::Track> >& tracks = assocTracks->at(iPF);
-    //
-    for (unsigned int iTrack = 0; iTrack < tracks.size(); ++iTrack) {
+
+  art::InputTag NuCCInputTag("NuCCproducer");
+  art::Handle<art::Assns<recob::PFParticle,anab::T0,void> > nucc_t0a;
+  e.getByLabel(NuCCInputTag, nucc_t0a);
+
+  // NuCC filtered events only
+  if (nucc_t0a.isValid()) {
+
+    for (unsigned int iPF = 0; iPF < inputPFParticle->size(); ++iPF) {
       //
-      const recob::Track& track = *tracks[iTrack];
-      art::Ptr<recob::Track> ptrack = tracks[iTrack];
+      // only pfps from neutrino
+      // if (isFromNeutrino(inputPFParticle,iPF)==false) continue;
       //
-      // prepare the hits - this is not computationally optimal, but at least preserves the order unlike FindManyP
-      std::vector<art::Ptr<recob::Hit> > inHits;
-      for (auto it = tkHitsAssn.begin(); it!=tkHitsAssn.end(); ++it) {
-	if (it->first == ptrack) inHits.push_back(it->second);
-	else if (inHits.size()>0) break;
+      const recob::PFParticle& pf = inputPFParticle->at(iPF);
+      recob::PFParticle outPF(pf);//copy PFParticle hierarchy, but need to remake tracks and clusters
+      //
+      outputPFs->emplace_back(std::move(outPF));
+      art::Ptr<recob::PFParticle> aptrpf = makePFParticlePtr(outputPFs->size()-1);
+      //
+      const std::vector<art::Ptr<recob::Track> >& tracks = assocTracks->at(iPF);
+      //
+ 
+      // Tracks must associated with the from the NuCC neutrino candidate PFP
+      bool nucc_nu = false;
+      for (auto ap : *nucc_t0a) {
+        if (ap.first.key() == iPF) {
+          nucc_nu = true;
+        }
+      }
+      if (!nucc_nu) {
+        std::cout << ">>> PFP not NuCC muon candidate PFP (" << iPF << ")" << std::endl;
+        continue;
+      }
+      std::cout << ">>> PFP IS NuCC muon candidate PFP (" << iPF << ")" << std::endl;
+
+      // Extract neutrino scores
+      float _fmscore = -999;
+      float _topo_score = -999;
+
+      for (size_t ip=0; ip<inputPFParticle->size(); ip++) {
+        auto const& pfp = inputPFParticle->at(ip);
+
+        if (!pfp.IsPrimary()) continue;
+        if (!(std::abs(pfp.PdgCode()) == 12 || std::abs(pfp.PdgCode()) == 14 || std::abs(pfp.PdgCode()) == 16)) continue;
+
+        const std::vector<art::Ptr<larpandoraobj::PFParticleMetadata> >& pfParticleMetadataList(pfPartToMetadataAssoc.at(ip));
+        if (!pfParticleMetadataList.empty()) {
+          for (unsigned int j=0; j<pfParticleMetadataList.size(); j++) {
+            const art::Ptr<larpandoraobj::PFParticleMetadata>& pfParticleMetadata(pfParticleMetadataList.at(j));
+            const larpandoraobj::PFParticleMetadata::PropertiesMap& pfParticlePropertiesMap(pfParticleMetadata->GetPropertiesMap());
+            if (pfParticlePropertiesMap.find("NuScore") != pfParticlePropertiesMap.end()) {
+              _topo_score = pfParticlePropertiesMap.at("NuScore");
+            }
+          }
+        }
+
+        _fmscore = pfp_t0_assn_v.at(ip).at(0)->TriggerConfidence();
+      }
+
+      std::cout << "topo " << _topo_score << ", flash " << _fmscore << std::endl;
+
+      for (unsigned int iTrack = 0; iTrack < tracks.size(); ++iTrack) {
+        //
+        const recob::Track& track = *tracks[iTrack];
+        art::Ptr<recob::Track> ptrack = tracks[iTrack];
+        //
+        // prepare the hits - this is not computationally optimal, but at least preserves the order unlike FindManyP
+        std::vector<art::Ptr<recob::Hit> > inHits;
+        for (auto it = tkHitsAssn.begin(); it!=tkHitsAssn.end(); ++it) {
+          if (it->first == ptrack) inHits.push_back(it->second);
+          else if (inHits.size()>0) break;
+        }
+        //
+        // here we do the splitting
+        //
+        recob::tracking::Positions_t    positions;
+        recob::tracking::Momenta_t      momenta;
+        recob::TrackTrajectory::Flags_t flags;
+        art::PtrVector<recob::Hit> outHits;
+        const int beg = (reverseHits ? inHits.size()-1 : 0);
+        const int end = (reverseHits ? -1 : inHits.size());
+        int tknpoints = track.NPoints();
+        for (int ihit = beg; ihit!=end; (reverseHits ? ihit-- : ihit++)) {
+          auto hit = inHits[ihit];
+          //
+          if (hitSubsetMode==1 && hit->WireID().Wire % 2 == 1) continue;
+          if (hitSubsetMode==2 && hit->WireID().Wire % 2 == 0) continue;
+          //
+          if (hitSubsetMode==3 && ihit>(inHits.size()*0.5-midPointHalfGap)) continue;
+          if (hitSubsetMode==4 && ihit<(inHits.size()*0.5+midPointHalfGap)) continue;
+          //
+          int tc4r = (ihit % (4*interleaveStep))/interleaveStep;
+          assert(tc4r<4);
+          if (hitSubsetMode==5 && tc4r!=0) continue;
+          if (hitSubsetMode==6 && tc4r!=2) continue;
+          //
+          int tc6r = (ihit % (6*interleaveStep))/interleaveStep;
+          assert(tc6r<6);
+          if (hitSubsetMode==7 && tc6r!=0 && tc6r!=1) continue;
+          if (hitSubsetMode==8 && tc6r!=3 && tc6r!=4) continue;
+          //
+          //
+          outHits.push_back(hit);
+          if (ihit>=tknpoints) continue;
+          positions.push_back(track.Trajectory().LocationAtPoint(ihit));
+          momenta.push_back(track.Trajectory().MomentumVectorAtPoint(ihit));
+          flags.push_back(track.Trajectory().FlagsAtPoint(ihit));
+        }
+        //
+        // if track splitting fails make a dummy track with 2 hits, which will fails cuts later on
+        // but at least does not break the PFP hierarchy
+        //
+        int nvalid = 0;
+        for (auto f : flags) {
+          if (f.isPointValid()) nvalid++;
+        }
+        if (nvalid<2) {
+          positions.clear();
+          momenta.clear();
+          flags.clear();
+          outHits.clear();
+          int count = 0;
+          for (int ihit = beg; ihit!=end; (reverseHits ? ihit-- : ihit++)) {
+            if (count>1) break;
+            auto hit = inHits[ihit];
+            outHits.push_back(hit);
+            positions.push_back(track.Trajectory().LocationAtPoint(ihit));
+            momenta.push_back(track.Trajectory().MomentumVectorAtPoint(ihit));
+            flags.push_back(recob::TrackTrajectory::PointFlags_t());
+            count++;
+          }
+        }
+        //
+        // make clusters for split track 
+        //
+        cluster::StandardClusterParamsAlg ClusterParamAlgo;
+        for (unsigned int plane=0;plane<3;plane++) {
+          //
+          art::PtrVector<recob::Hit> viewHits;
+          for (auto hit : outHits) {
+            //fixme does not work for multi-TPC
+            if (hit->WireID().planeID().Plane!=plane) continue;
+            viewHits.push_back(hit);
+          }
+          if (viewHits.empty()) continue;
+          recob::Cluster outCluster = BuildCluster(outputClusters->size(), viewHits, ClusterParamAlgo);
+          outputClusters->emplace_back(std::move(outCluster));
+          art::Ptr<recob::Cluster> aptrcl = makeClusterPtr(outputClusters->size()-1);
+          outputPFClAssn->addSingle(aptrpf, aptrcl);
+          for (auto phit : viewHits)  outputClHtAssn->addSingle(aptrcl, phit);
+        }
+        //
+        // make split track 
+        //
+        recob::Track outTrack = recob::Track(recob::TrackTrajectory(std::move(positions),std::move(momenta),std::move(flags),track.HasMomentum()),
+          				   0,-1.,0,recob::tracking::SMatrixSym55(),recob::tracking::SMatrixSym55(),track.ID());
+        //
+        // std::cout << "orgnl track start=" << track.Trajectory().Start() << " dir" <<  track.Trajectory().StartDirection() << " nh=" << track.CountValidPoints() << " id=" << track.ID() << std::endl;
+        // std::cout << "split track start=" << outTrack.Trajectory().Start() << " dir" <<  outTrack.Trajectory().StartDirection() << " nh=" << outTrack.CountValidPoints() << " id=" << outTrack.ID() << std::endl;
+        // std::cout << std::endl;
+        //
+        outputTracks->emplace_back(std::move(outTrack));
+        art::Ptr<recob::Track> aptrtk= makeTrackPtr(outputTracks->size()-1);
+        for (auto const& trhit: outHits) {
+          outputHitsAssn->addSingle(aptrtk, trhit);
+        }
+        outputPFTkAssn->addSingle(aptrpf, aptrtk);
       }
       //
-      // here we do the splitting
+      // vertices are not remade at this stage, but need the association
       //
-      recob::tracking::Positions_t    positions;
-      recob::tracking::Momenta_t      momenta;
-      recob::TrackTrajectory::Flags_t flags;
-      art::PtrVector<recob::Hit> outHits;
-      const int beg = (reverseHits ? inHits.size()-1 : 0);
-      const int end = (reverseHits ? -1 : inHits.size());
-      int tknpoints = track.NPoints();
-      for (int ihit = beg; ihit!=end; (reverseHits ? ihit-- : ihit++)) {
-	auto hit = inHits[ihit];
-	//
-	if (hitSubsetMode==1 && hit->WireID().Wire % 2 == 1) continue;
-	if (hitSubsetMode==2 && hit->WireID().Wire % 2 == 0) continue;
-	//
-	if (hitSubsetMode==3 && ihit>(inHits.size()*0.5-midPointHalfGap)) continue;
-	if (hitSubsetMode==4 && ihit<(inHits.size()*0.5+midPointHalfGap)) continue;
-	//
-	int tc4r = (ihit % (4*interleaveStep))/interleaveStep;
-	assert(tc4r<4);
-	if (hitSubsetMode==5 && tc4r!=0) continue;
-	if (hitSubsetMode==6 && tc4r!=2) continue;
-	//
-	int tc6r = (ihit % (6*interleaveStep))/interleaveStep;
-	assert(tc6r<6);
-	if (hitSubsetMode==7 && tc6r!=0 && tc6r!=1) continue;
-	if (hitSubsetMode==8 && tc6r!=3 && tc6r!=4) continue;
-	//
-	//
-	outHits.push_back(hit);
-	if (ihit>=tknpoints) continue;
-	positions.push_back(track.Trajectory().LocationAtPoint(ihit));
-	momenta.push_back(track.Trajectory().MomentumVectorAtPoint(ihit));
-	flags.push_back(track.Trajectory().FlagsAtPoint(ihit));
+      const std::vector<art::Ptr<recob::Vertex> >& vertices = assocVertices->at(iPF);
+      for (unsigned int iVertex = 0; iVertex < vertices.size(); ++iVertex) {
+        art::Ptr<recob::Vertex> pvertex = vertices[iVertex];
+        outputPFVxAssn->addSingle(aptrpf, pvertex);
       }
       //
-      // if track splitting fails make a dummy track with 2 hits, which will fails cuts later on
-      // but at least does not break the PFP hierarchy
-      //
-      int nvalid = 0;
-      for (auto f : flags) {
-	if (f.isPointValid()) nvalid++;
-      }
-      if (nvalid<2) {
-	positions.clear();
-	momenta.clear();
-	flags.clear();
-	outHits.clear();
-	int count = 0;
-	for (int ihit = beg; ihit!=end; (reverseHits ? ihit-- : ihit++)) {
-	  if (count>1) break;
-	  auto hit = inHits[ihit];
-	  outHits.push_back(hit);
-	  positions.push_back(track.Trajectory().LocationAtPoint(ihit));
-	  momenta.push_back(track.Trajectory().MomentumVectorAtPoint(ihit));
-	  flags.push_back(recob::TrackTrajectory::PointFlags_t());
-	  count++;
-	}
-      }
-      //
-      // make clusters for split track 
-      //
-      cluster::StandardClusterParamsAlg ClusterParamAlgo;
-      for (unsigned int plane=0;plane<3;plane++) {
-	//
-	art::PtrVector<recob::Hit> viewHits;
-	for (auto hit : outHits) {
-	  //fixme does not work for multi-TPC
-	  if (hit->WireID().planeID().Plane!=plane) continue;
-	  viewHits.push_back(hit);
-	}
-	if (viewHits.empty()) continue;
-	recob::Cluster outCluster = BuildCluster(outputClusters->size(), viewHits, ClusterParamAlgo);
-	outputClusters->emplace_back(std::move(outCluster));
-	art::Ptr<recob::Cluster> aptrcl = makeClusterPtr(outputClusters->size()-1);
-	outputPFClAssn->addSingle(aptrpf, aptrcl);
-	for (auto phit : viewHits)  outputClHtAssn->addSingle(aptrcl, phit);
-      }
-      //
-      // make split track 
-      //
-      recob::Track outTrack = recob::Track(recob::TrackTrajectory(std::move(positions),std::move(momenta),std::move(flags),track.HasMomentum()),
-					   0,-1.,0,recob::tracking::SMatrixSym55(),recob::tracking::SMatrixSym55(),track.ID());
-      //
-      // std::cout << "orgnl track start=" << track.Trajectory().Start() << " dir" <<  track.Trajectory().StartDirection() << " nh=" << track.CountValidPoints() << " id=" << track.ID() << std::endl;
-      // std::cout << "split track start=" << outTrack.Trajectory().Start() << " dir" <<  outTrack.Trajectory().StartDirection() << " nh=" << outTrack.CountValidPoints() << " id=" << outTrack.ID() << std::endl;
-      // std::cout << std::endl;
-      //
-      outputTracks->emplace_back(std::move(outTrack));
-      art::Ptr<recob::Track> aptrtk= makeTrackPtr(outputTracks->size()-1);
-      for (auto const& trhit: outHits) {
-	outputHitsAssn->addSingle(aptrtk, trhit);
-      }
-      outputPFTkAssn->addSingle(aptrpf, aptrtk);
     }
-    //
-    // vertices are not remade at this stage, but need the association
-    //
-    const std::vector<art::Ptr<recob::Vertex> >& vertices = assocVertices->at(iPF);
-    for (unsigned int iVertex = 0; iVertex < vertices.size(); ++iVertex) {
-      art::Ptr<recob::Vertex> pvertex = vertices[iVertex];
-      outputPFVxAssn->addSingle(aptrpf, pvertex);
-    }
-    //
   }
+  else {
+    std::cout << ">>> No NuCC T0!" << std::endl;
+  }
+
+  std::cout << "Produced " << outputTracks->size() << " tracks, " << outputClusters->size() << " clusters, " << outputPFs->size() << " PFs" << std::endl;
+
   e.put(std::move(outputTracks));
   e.put(std::move(outputClusters));
   e.put(std::move(outputPFs));
