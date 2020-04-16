@@ -652,7 +652,6 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e) {
     // Extract neutrino scores
     float _fmscore = -999;
     float _topo_score = -999;
-    bool nuScoreSet = false;
 
     for (size_t ip=0; ip<Pfps->size(); ip++) {
       auto const& pfp = Pfps->at(ip);
@@ -671,9 +670,8 @@ void TrajectoryMCSNtuple::analyze(art::Event const & e) {
           const art::Ptr<larpandoraobj::PFParticleMetadata>& pfParticleMetadata(pfParticleMetadataList.at(j));
           const larpandoraobj::PFParticleMetadata::PropertiesMap& pfParticlePropertiesMap(pfParticleMetadata->GetPropertiesMap());
           if (pfParticlePropertiesMap.find("NuScore") != pfParticlePropertiesMap.end()) {
-            assert(!nuScoreSet);
+            assert(nuScore == -999);
             _topo_score = pfParticlePropertiesMap.at("NuScore");
-            nuScoreSet = true;
           }
         }
       }
